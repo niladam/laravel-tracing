@@ -79,6 +79,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Flatten context into dot keys
+    |--------------------------------------------------------------------------
+    |
+    | Some log pipelines — New Relic among them — handle nested arrays badly.
+    | Turning this on runs the context through Arr::dot on its way to a log
+    | line, so ['body' => ['address' => '…']] is written as 'body.address'.
+    |
+    | Logs only: job payloads keep their real structure, so a nested value
+    | still arrives intact on the other side of a queue.
+    |
+    | It also widens "redact" below, since a nested secret only matches a
+    | pattern once its key has become "body.password".
+    |
+    */
+
+    'flatten_context' => (bool) env('TRACING_FLATTEN_CONTEXT', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Redacted keys
     |--------------------------------------------------------------------------
     |

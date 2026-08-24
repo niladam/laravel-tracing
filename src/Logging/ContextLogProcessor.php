@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Log\ContextLogProcessor as ContextLogProcessorContract;
 use Illuminate\Log\Context\ContextLogProcessor as FrameworkContextLogProcessor;
 use Illuminate\Log\Context\Repository as ContextRepository;
+use Illuminate\Support\Arr;
 use Monolog\LogRecord;
 use Niladam\LaravelTracing\Redactor;
 
@@ -21,7 +22,10 @@ use Niladam\LaravelTracing\Redactor;
  */
 class ContextLogProcessor implements ContextLogProcessorContract
 {
-    public function __construct(private readonly Redactor $redactor) {}
+    public function __construct(
+        private readonly Redactor $redactor,
+        private readonly bool $flattenContext = false,
+    ) {}
 
     public function __invoke(LogRecord $record): LogRecord
     {
@@ -31,9 +35,26 @@ class ContextLogProcessor implements ContextLogProcessorContract
             return $record;
         }
 
-        return $record->with(context: $this->redactor->apply([
+        $context = [
             ...$app->get(ContextRepository::class)->all(),
             ...$record->context,
-        ]));
+        ];
+
+        return $record->with(context: $this->redactor->apply($this->flatten($context)));
+    }
+
+    /**
+     * Flatten before redacting, never after.
+     *
+     * A nested ['body' => ['password' => '…']] is only reachable by a "*password*"
+     * pattern once it has become the key "body.password"; redacting first would
+     * check "body" and wave the secret through.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    protected function flatten(array $context): array
+    {
+        return $this->flattenContext ? Arr::dot($context) : $context;
     }
 }

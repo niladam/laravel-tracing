@@ -49,6 +49,8 @@ Context added elsewhere in your application — by a request-enrichment middlewa
 
 Patterns are case-insensitive; `*` matches any run of characters, so `*password*` also covers `body.password_confirmation` and `PASSWORD`.
 
+Nested values are a blind spot here: `['body' => ['password' => '…']]` is checked as the key `body`, which matches nothing, so the secret is written out in full. Turning on [`flatten_context`](#flattening-nested-context) makes it `body.password` before redaction runs, and the pattern then catches it.
+
 This masks the value **in logs only**. The real value is still in the running process and, unless you also use `never_queue`, still written to job payloads. Redaction is a backstop, not a substitute for not adding the value.
 
 ## Keeping things out of your queue
@@ -63,6 +65,23 @@ Matching keys are stripped from the payload on the way in. The running process k
 
 Job details recorded by this package (`job.*`) are always stripped this way, so a job's children carry their own details rather than inheriting whatever dispatched them.
 
+## Flattening nested context
+
+```php
+'flatten_context' => true,
+```
+
+Runs the context through `Arr::dot` on its way to a log line, so `['body' => ['address' => '…']]` is written as `body.address`. Off by default.
+
+Two reasons to turn it on:
+
+1. **Your log pipeline dislikes nested arrays.** New Relic is the usual case.
+2. **Redaction reaches deeper**, as above — flattening happens *before* redacting, never after.
+
+It applies to logs only. Job payloads keep their real structure, so a nested value still arrives intact on the other side of a queue, and `Context::get()` returns what you put in.
+
+Empty arrays are left as-is, which is `Arr::dot`'s own behaviour — `['body' => []]` stays `body => []`.
+
 ## Choosing between them
 
 | You want to… | Use |
@@ -71,3 +90,4 @@ Job details recorded by this package (`job.*`) are always stripped this way, so 
 | Pass a secret to a downstream job without logging it | `Context::addHidden()` |
 | Catch sensitive keys added anywhere in the app | `redact.keys` |
 | Keep bulky or private context out of Redis | `never_queue` |
+| Let redaction see inside nested arrays | `flatten_context` |

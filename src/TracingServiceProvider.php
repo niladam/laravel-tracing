@@ -54,7 +54,10 @@ class TracingServiceProvider extends PackageServiceProvider
         }
 
         if (config('tracing.merge_log_context')) {
-            $this->app->bind(ContextLogProcessorContract::class, ContextLogProcessor::class);
+            $this->app->bind(ContextLogProcessorContract::class, fn () => new ContextLogProcessor(
+                redactor: $this->app->make(Redactor::class),
+                flattenContext: (bool) config('tracing.flatten_context', false),
+            ));
         }
     }
 
