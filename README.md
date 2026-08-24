@@ -122,7 +122,15 @@ Context::addHidden('key', $value);                 // travels, never logged
 
 ## Requirements
 
-PHP 8.2+, Laravel 11 / 12 / 13. Saloon v3 or v4 is optional — if installed, its requests are traced too.
+| | |
+| --- | --- |
+| PHP | 8.2+ (8.3+ on Laravel 13) |
+| Laravel | `^12.61.1` or `^13.12.0` |
+| Saloon | `^4.0`, optional |
+
+The floors are the first releases free of a published security advisory — earlier ones exist, but Composer's audit refuses to install them, so there is no point advertising support for them.
+
+Laravel 11 and Saloon v3 are unsupported for the same reason: **every** release of both carries an unpatched advisory (`>=11.0.0,<12.0.0` and `<4.0.0` respectively), with no fixed version in either line.
 
 ## Testing
 

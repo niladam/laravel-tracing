@@ -66,7 +66,7 @@ Both Laravel's HTTP client and Saloon ask the same question, so the rule cannot 
 
 ## Saloon
 
-Optional. If `saloonphp/saloon` (v3 or v4) is installed, its requests are traced too — it ships its own sender, so Laravel's global HTTP middleware never sees them. If it is not installed, nothing referencing it is ever loaded.
+Optional. If `saloonphp/saloon` v4 is installed, its requests are traced too — it ships its own sender, so Laravel's global HTTP middleware never sees them. If it is not installed, nothing referencing it is ever loaded.
 
 ## Moving to a real APM later
 
