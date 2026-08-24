@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Niladam\LaravelTracing\Listeners;
+namespace Niladam\LaravelTracing\Recorders;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Contracts\Recorder;
+use Niladam\LaravelTracing\Events\RequestReceived;
 
 /**
  * Records what the request was.
@@ -17,17 +18,27 @@ use Niladam\LaravelTracing\Channel;
  * for something you would rather not keep. Whatever is recorded still passes
  * through redaction on its way to a log line.
  */
-class RecordRequestContext
+class RecordRequestContext implements Recorder
 {
-    public function handle(Request $request): void
+    public static function listensTo(): string
     {
-        Context::add([
-            'channel' => Channel::Http->value,
+        return RequestReceived::class;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function __invoke(object $event): array
+    {
+        $request = $event->request;
+
+        return [
+            'channel' => Channel::Http,
             'ip' => $request->ip(),
             'url' => $request->fullUrl(),
             'method' => $request->method(),
             ...$this->payload($request),
-        ]);
+        ];
     }
 
     /**
@@ -35,7 +46,7 @@ class RecordRequestContext
      */
     protected function payload(Request $request): array
     {
-        if (! config('tracing.record.request_payload', false)) {
+        if (! config('tracing.request_payload', false)) {
             return [];
         }
 

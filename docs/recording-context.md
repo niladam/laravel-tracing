@@ -18,15 +18,19 @@ The package covers the first four. The last one is where your app plugs in.
 
 ## What you get for free
 
+A list of recorder classes. Delete a line to switch one off; add a line to switch your own on.
+
 ```php
 'record' => [
-    'auth'    => true,
-    'request' => true,
-    'console' => true,
-    'jobs'    => true,
+    RecordRequestContext::class,      // channel, ip, url, method
+    RecordAuthenticatedUser::class,   // user_id, session and stateless guards alike
+    RecordConsoleContext::class,      // channel, command
+    RecordJobContext::class,          // job.name, job.queue, job.attempts, …
 
-    'request_payload' => false,   // body.* and query.* — off, payloads are bulky
+    App\Tracing\RecordTenantContext::class,   // and yours, registered identically
 ],
+
+'request_payload' => false,   // body.* and query.* — off, payloads are bulky
 ```
 
 Plus static keys, for anything that never changes:
@@ -39,9 +43,34 @@ Plus static keys, for anything that never changes:
 
 Attached to every request, job and command, and carried into the jobs each dispatches. Values must be serialisable so `config:cache` keeps working — anything that has to be worked out at runtime belongs on a recorder.
 
-## Adding your own
+## Writing a recorder
 
-Two methods. Both take a closure **or** the name of an invokable class, so a growing list moves out of the closure without the call site changing.
+A recorder names the event it waits for and returns the keys to merge. That is the whole contract:
+
+```php
+use Niladam\LaravelTracing\Contracts\Recorder;
+
+final class RecordTenantContext implements Recorder
+{
+    public static function listensTo(): string
+    {
+        return TenantResolved::class;
+    }
+
+    public function __invoke(TenantResolved $event): array
+    {
+        return ['tenant_id' => $event->tenant->id];
+    }
+}
+```
+
+Add it to `record` and it is registered exactly like the built-ins — no provider code, and the config stays cacheable because it is a class name. It is resolved from the container, so it can take dependencies.
+
+Returned enums are unwrapped to their scalar value, so `'channel' => Channel::Http` needs no `->value`.
+
+## Adding your own, without a class
+
+Two methods, for when a class is more ceremony than the job needs. Both take a closure **or** the name of an invokable class.
 
 ### `Tracing::authenticated()`
 

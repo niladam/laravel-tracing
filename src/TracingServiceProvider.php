@@ -4,22 +4,17 @@ declare(strict_types=1);
 
 namespace Niladam\LaravelTracing;
 
-use Illuminate\Auth\Events\Authenticated;
-use Illuminate\Console\Events\CommandStarting;
+use BackedEnum;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Contracts\Log\ContextLogProcessor as ContextLogProcessorContract;
 use Illuminate\Log\Context\Events\ContextHydrated;
 use Illuminate\Log\Context\Repository;
-use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
-use Niladam\LaravelTracing\Listeners\RecordAuthenticatedUser;
-use Niladam\LaravelTracing\Listeners\RecordConsoleContext;
-use Niladam\LaravelTracing\Listeners\RecordJobContext;
 use Niladam\LaravelTracing\Logging\ContextLogProcessor;
 use Niladam\LaravelTracing\Propagation\OutgoingTrace;
 use Niladam\LaravelTracing\Propagation\SaloonTracing;
@@ -77,9 +72,7 @@ class TracingServiceProvider extends PackageServiceProvider
 
         Event::listen(events: ContextHydrated::class, listener: fn () => $this->startChildSpan());
 
-        $this->recordAuthenticatedUser();
-        $this->recordConsoleContext();
-        $this->recordJobContext();
+        $this->registerRecorders();
         $this->keepSensitiveContextOutOfJobs();
         $this->registerMiddleware();
         $this->traceOutgoingRequests();
@@ -118,36 +111,34 @@ class TracingServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Record who each unit of work is running as.
+     * Bind every configured recorder to the moment it waits for.
      *
-     * Laravel only announces this for session guards, so the stateless path is
-     * picked up separately — see {@see RecordAuthenticatedUser}.
+     * A recorder names its own event, so switching one on or off is a line in
+     * the config list and an application's own recorder is registered exactly
+     * like the built-in ones.
      */
-    protected function recordAuthenticatedUser(): void
+    protected function registerRecorders(): void
     {
-        if (config('tracing.record.auth', true)) {
-            Event::listen(Authenticated::class, [RecordAuthenticatedUser::class, 'handle']);
+        foreach ((array) config('tracing.record', []) as $recorder) {
+            Event::listen(
+                $recorder::listensTo(),
+                fn (object $event) => Context::add($this->scalars($this->app->make($recorder)($event))),
+            );
         }
     }
 
     /**
-     * Record which command each line was logged from.
+     * Unwrap enums, so a recorder can return one without reaching for ->value.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
      */
-    protected function recordConsoleContext(): void
+    protected function scalars(array $context): array
     {
-        if (config('tracing.record.console', true)) {
-            Event::listen(CommandStarting::class, [RecordConsoleContext::class, 'handle']);
-        }
-    }
-
-    /**
-     * Record which job each line was logged from.
-     */
-    protected function recordJobContext(): void
-    {
-        if (config('tracing.record.jobs', true)) {
-            Event::listen(JobProcessing::class, RecordJobContext::class);
-        }
+        return array_map(
+            fn (mixed $value) => $value instanceof BackedEnum ? $value->value : $value,
+            $context,
+        );
     }
 
     /**

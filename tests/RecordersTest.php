@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Niladam\LaravelTracing\Channel;
 use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
+use Niladam\LaravelTracing\Recorders\RecordRequestContext;
 use Niladam\LaravelTracing\TraceContext;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
@@ -35,7 +36,7 @@ test('the request payload is left out by default', function () {
 });
 
 test('the request payload is recorded when asked for, as dot keys', function () {
-    config()->set('tracing.record.request_payload', true);
+    config()->set('tracing.request_payload', true);
 
     $context = $this->post('/probe?page=2', ['note' => 'hi'])->assertOk()->json();
 
@@ -44,19 +45,13 @@ test('the request payload is recorded when asked for, as dot keys', function () 
 });
 
 test('a recorded payload still passes through redaction', function () {
-    config()->set('tracing.record.request_payload', true);
+    config()->set('tracing.request_payload', true);
 
     $this->post('/probe', ['password' => 'hunter2'])->assertOk();
 
     Log::channel('probe')->info('hello');
 
     expect(probeRecords()[0]->context['body.password'])->toBe('[redacted]');
-});
-
-test('a request recorder can be turned off', function () {
-    config()->set('tracing.record.request', false);
-
-    expect($this->post('/probe')->assertOk()->json())->not->toHaveKey('method');
 });
 
 test('a console command records what it was', function () {
@@ -88,3 +83,20 @@ test('additional context survives into a job, whose context is flushed on hydrat
 
     expect(Context::get('version'))->toBe('1.2.3');
 });
+
+test('a recorder left out of the list never registers', function () {
+    $this->bootConfig = ['tracing.record' => array_values(array_diff(
+        config('tracing.record'),
+        [RecordRequestContext::class],
+    ))];
+
+    $this->refreshApplication();
+
+    Route::middleware(TraceRequests::class)->post('/probe', fn () => Context::all());
+
+    $context = $this->post('/probe')->assertOk()->json();
+
+    expect($context)->not->toHaveKey('method')
+        ->and($context)->not->toHaveKey('channel')
+        ->and($context)->toHaveKey('trace_id');
+})->note('The trace itself still works — only that one recorder is gone.');

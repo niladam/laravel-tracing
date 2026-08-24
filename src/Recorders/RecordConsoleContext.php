@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Niladam\LaravelTracing\Listeners;
+namespace Niladam\LaravelTracing\Recorders;
 
 use Illuminate\Console\Events\CommandStarting;
-use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Contracts\Recorder;
 
 /**
  * Records which command a line was logged from.
@@ -14,13 +14,21 @@ use Niladam\LaravelTracing\Channel;
  * A long-running process handles many commands; without this they all report
  * the span the process booted with and nothing says which is which.
  */
-class RecordConsoleContext
+class RecordConsoleContext implements Recorder
 {
-    public function handle(CommandStarting $event): void
+    public static function listensTo(): string
     {
-        Context::add([
-            'channel' => Channel::Console->value,
+        return CommandStarting::class;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function __invoke(object $event): array
+    {
+        return [
+            'channel' => Channel::Console,
             'command' => $event->command ?? $event->input->getFirstArgument(),
-        ]);
+        ];
     }
 }

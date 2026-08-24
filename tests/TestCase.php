@@ -10,6 +10,17 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
+    /**
+     * Config applied before the package boots.
+     *
+     * Set it, call refreshApplication(), and the app comes back up as though
+     * the config had always been that way — the only honest way to test what
+     * happens at registration time.
+     *
+     * @var array<string, mixed>
+     */
+    public array $bootConfig = [];
+
     protected function getPackageProviders($app): array
     {
         return [TracingServiceProvider::class];
@@ -22,6 +33,10 @@ abstract class TestCase extends Orchestra
 
         $app['config']->set('session.domain', '.example.test');
         $app['config']->set('tracing.never_queue', ['body.*']);
+
+        foreach ($this->bootConfig as $key => $value) {
+            $app['config']->set($key, $value);
+        }
         $app['config']->set('logging.channels.probe', [
             'driver' => 'monolog',
             'handler' => TestHandler::class,

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Niladam\LaravelTracing\Listeners;
+namespace Niladam\LaravelTracing\Recorders;
 
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Contracts\Recorder;
 use Niladam\LaravelTracing\Redactor;
 use Niladam\LaravelTracing\SensitiveParameters;
 use Throwable;
@@ -21,28 +21,36 @@ use Throwable;
  * These keys never leave the worker: the provider strips the prefix on the way
  * into a job payload, so a job's children carry their own details, not its.
  */
-class RecordJobContext
+class RecordJobContext implements Recorder
 {
+    public static function listensTo(): string
+    {
+        return JobProcessing::class;
+    }
+
     public function __construct(
         private readonly SensitiveParameters $sensitive,
         private readonly Redactor $redactor,
     ) {}
 
-    public function handle(JobProcessing $event): void
+    /**
+     * @return array<string, mixed>
+     */
+    public function __invoke(object $event): array
     {
         $prefix = (string) config('tracing.jobs.prefix', 'job');
         $payload = $event->job->payload();
         $name = $this->jobName($event, $payload);
 
-        Context::add([
-            'channel' => Channel::Queue->value,
+        return [
+            'channel' => Channel::Queue,
             "{$prefix}.name" => $name,
             "{$prefix}.connection" => $event->connectionName,
             "{$prefix}.queue" => $event->job->getQueue(),
             "{$prefix}.attempts" => $event->job->attempts(),
             "{$prefix}.uuid" => $event->job->uuid(),
             ...$this->arguments($name, $payload, $prefix),
-        ]);
+        ];
     }
 
     /**

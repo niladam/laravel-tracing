@@ -8,8 +8,8 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\ContextKeys;
-use Niladam\LaravelTracing\Listeners\RecordAuthenticatedUser;
-use Niladam\LaravelTracing\Listeners\RecordRequestContext;
+use Niladam\LaravelTracing\Events\RequestReceived;
+use Niladam\LaravelTracing\Recorders\RecordAuthenticatedUser;
 use Niladam\LaravelTracing\TraceContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,13 +37,9 @@ class TraceRequests
 
         $this->recordUpstreamRequestId($request);
 
-        if (config('tracing.record.request', true)) {
-            app(RecordRequestContext::class)->handle($request);
-        }
+        event(new RequestReceived($request));
 
-        if (config('tracing.record.auth', true)) {
-            app(RecordAuthenticatedUser::class)->watch($request);
-        }
+        app(RecordAuthenticatedUser::class)->watch($request);
     }
 
     /**

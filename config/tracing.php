@@ -1,6 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use Niladam\LaravelTracing\Recorders\RecordAuthenticatedUser;
+use Niladam\LaravelTracing\Recorders\RecordConsoleContext;
+use Niladam\LaravelTracing\Recorders\RecordJobContext;
+use Niladam\LaravelTracing\Recorders\RecordRequestContext;
 
 return [
 
@@ -149,32 +153,29 @@ return [
     | What the package records on its own. Each writes at the moment its facts
     | become true, so nothing depends on middleware ordering.
     |
-    |   auth    — user_id, the moment any guard answers. Session and stateless
-    |             alike, so Passport and Sanctum are covered; Laravel only
-    |             announces the session case, so the other is picked up too.
-    |   request — channel, ip, url, method
-    |   console — channel, command
-    |   jobs    — job.name, job.connection, job.queue, job.attempts, job.uuid
+    | Each names the event it waits for and returns the keys to merge, so
+    | switching one off is deleting a line, and one of your own is registered
+    | exactly like the built-ins — implement the Recorder contract and add it:
     |
-    | For anything of your own, register a recorder against the event that
-    | makes it true — see Tracing::on() and Tracing::authenticated().
+    |     App\Tracing\RecordTenantContext::class,
+    |
+    | What the built-ins record:
+    |
+    |   RecordRequestContext        channel, ip, url, method (+ payload below)
+    |   RecordAuthenticatedUser     user_id, the moment any guard answers —
+    |                               session and stateless alike, so Passport
+    |                               and Sanctum are covered too
+    |   RecordConsoleContext        channel, command
+    |   RecordJobContext            job.name, job.connection, job.queue,
+    |                               job.attempts, job.uuid
     |
     */
 
     'record' => [
-        'auth' => (bool) env('TRACING_RECORD_AUTH', true),
-        'request' => (bool) env('TRACING_RECORD_REQUEST', true),
-        'console' => (bool) env('TRACING_RECORD_CONSOLE', true),
-        'jobs' => (bool) env('TRACING_RECORD_JOBS', true),
-
-        /*
-         * The request body and query string, as body.* and query.* keys.
-         *
-         * Off by default: a payload can be large enough to bloat every line the
-         * request writes, and is the likeliest place for something you would
-         * rather not keep. What is recorded still passes through "redact".
-         */
-        'request_payload' => (bool) env('TRACING_RECORD_REQUEST_PAYLOAD', false),
+        RecordRequestContext::class,
+        RecordAuthenticatedUser::class,
+        RecordConsoleContext::class,
+        RecordJobContext::class,
     ],
 
     /*
@@ -189,6 +190,21 @@ return [
     | that has to be worked out at runtime belongs on a recorder instead.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Request payload
+    |--------------------------------------------------------------------------
+    |
+    | Record the request body and query string, as body.* and query.* keys.
+    |
+    | Off by default: a payload can be large enough to bloat every line the
+    | request writes, and is the likeliest place for something you would rather
+    | not keep. What is recorded still passes through "redact".
+    |
+    */
+
+    'request_payload' => (bool) env('TRACING_RECORD_REQUEST_PAYLOAD', false),
 
     'additional_context' => [
         // 'version' => env('APP_VERSION'),
