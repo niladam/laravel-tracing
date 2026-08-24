@@ -39,7 +39,7 @@ test('the request payload is left out by default', function () {
 });
 
 test('the request payload is recorded when asked for, as dot keys', function () {
-    config()->set('tracing.request_payload', true);
+    config()->set('tracing.context.request_payload', true);
 
     $context = $this->post('/probe?page=2', ['note' => 'hi'])->assertOk()->json();
 
@@ -48,7 +48,7 @@ test('the request payload is recorded when asked for, as dot keys', function () 
 });
 
 test('a recorded payload still passes through redaction', function () {
-    config()->set('tracing.request_payload', true);
+    config()->set('tracing.context.request_payload', true);
 
     $this->post('/probe', ['password' => 'hunter2'])->assertOk();
 
@@ -73,13 +73,13 @@ test('a job records the queue channel', function () {
 });
 
 test('additional context is attached to a request', function () {
-    config()->set('tracing.additional_context', ['version' => '1.2.3']);
+    config()->set('tracing.context.additional', ['version' => '1.2.3']);
 
     $this->post('/probe')->assertOk()->assertJsonPath('version', '1.2.3');
 });
 
 test('additional context survives into a job, whose context is flushed on hydrate', function () {
-    config()->set('tracing.additional_context', ['version' => '1.2.3']);
+    config()->set('tracing.context.additional', ['version' => '1.2.3']);
 
     TraceContext::start()->putInContext();
     Context::hydrate(Context::dehydrate());

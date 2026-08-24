@@ -21,7 +21,7 @@ Laravel publishes the middle three. The package publishes the two marked *(packa
 
 | Your key is… | Do this | Effort |
 | --- | --- | --- |
-| a constant | `additional_context` in config | no code |
+| a constant | `context.additional` in config | no code |
 | a value or two, computed | `Tracing::always(...)` | one line |
 | tied to a moment | `Tracing::on(SomeEvent::class, ...)` | one line |
 | tied to who is logged in | `Tracing::authenticated('web', ...)` | one line |
@@ -31,7 +31,7 @@ Only the last rung is a class, and only reach for it when a closure has stopped 
 
 ```php
 // config/tracing.php
-'additional_context' => ['deployment' => env('DEPLOYMENT_ID')],
+'context' => ['additional' => ['deployment' => env('DEPLOYMENT_ID')]],
 
 // a service provider's boot()
 Tracing::always(fn () => ['host' => gethostname()]);
@@ -53,14 +53,16 @@ A list of recorder classes. Delete a line to switch one off; add a line to switc
     App\Tracing\RecordTenantContext::class,   // and yours, registered identically
 ],
 
-'request_payload' => false,   // body.* and query.* — off, payloads are bulky
+'context' => [
+    'request_payload' => false,   // body.* and query.* — off, payloads are bulky
+],
 ```
 
 Plus static keys, for anything that never changes:
 
 ```php
-'additional_context' => [
-    'version' => env('APP_VERSION'),
+'context' => [
+    'additional' => ['version' => env('APP_VERSION')],
 ],
 ```
 
@@ -193,7 +195,7 @@ final class RecordDeployment implements Recorder
 
 Either way it fires again when a job rehydrates, so the keys survive a queue hop — a job's context is flushed and refilled, and anything not re-recorded would be lost.
 
-If the value is a constant, skip the class entirely and use `additional_context`.
+If the value is a constant, skip the class entirely and use `context.additional`.
 
 ### It describes the process, not the trace
 

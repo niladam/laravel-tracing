@@ -46,7 +46,7 @@ class RecordRequestContext implements Recorder
      */
     protected function payload(Request $request): array
     {
-        if (! config('tracing.request_payload', false)) {
+        if (! config('tracing.context.request_payload', false)) {
             return [];
         }
 

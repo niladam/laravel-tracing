@@ -22,7 +22,7 @@ test('nested context is left alone by default', function () {
 });
 
 test('nested context becomes dot keys when flattening is on', function () {
-    config()->set('tracing.flatten_context', true);
+    config()->set('tracing.logs.flatten', true);
 
     $context = logWithContext(['filters' => ['status' => 'open', 'tags' => ['a', 'b']]]);
 
@@ -34,14 +34,14 @@ test('nested context becomes dot keys when flattening is on', function () {
 });
 
 test('flattening leaves empty arrays intact, as Arr::dot does', function () {
-    config()->set('tracing.flatten_context', true);
+    config()->set('tracing.logs.flatten', true);
 
     expect(logWithContext(['body' => [], 'query' => []]))
         ->toMatchArray(['body' => [], 'query' => []]);
 });
 
 test('a nested secret is redacted whether or not flattening is on', function (bool $flatten) {
-    config()->set('tracing.flatten_context', $flatten);
+    config()->set('tracing.logs.flatten', $flatten);
 
     $context = logWithContext(['body' => ['address' => 'Main St 1', 'password' => 'hunter2']]);
 
@@ -53,7 +53,7 @@ test('a nested secret is redacted whether or not flattening is on', function (bo
 ]);
 
 test('flattening does not reach job payloads', function () {
-    config()->set('tracing.flatten_context', true);
+    config()->set('tracing.logs.flatten', true);
 
     Context::add('filters', ['status' => 'open']);
 

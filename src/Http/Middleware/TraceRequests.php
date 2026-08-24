@@ -51,7 +51,7 @@ class TraceRequests
      */
     protected function recordUpstreamRequestId(Request $request): void
     {
-        foreach ((array) config('tracing.inbound.request_id_headers', []) as $header) {
+        foreach ((array) config('tracing.propagation.inbound_request_ids', []) as $header) {
             $value = $request->header($header);
 
             if (filled($value)) {
@@ -73,7 +73,7 @@ class TraceRequests
             return $response;
         }
 
-        foreach ((array) config('tracing.response.headers', []) as $header => $part) {
+        foreach ((array) config('tracing.propagation.response_headers', []) as $header => $part) {
             $value = match ($part) {
                 'traceparent' => $span->toTraceparent(),
                 'trace_id' => $span->traceId,

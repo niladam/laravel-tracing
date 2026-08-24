@@ -17,7 +17,7 @@ test('the trace id comes back on the response by default', function () {
 });
 
 test('a response header can carry the full traceparent', function () {
-    config()->set('tracing.response.headers', ['traceparent' => 'traceparent']);
+    config()->set('tracing.propagation.response_headers', ['traceparent' => 'traceparent']);
 
     $response = $this->get('/probe', [
         'traceparent' => '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
@@ -29,13 +29,13 @@ test('a response header can carry the full traceparent', function () {
 });
 
 test('sending nothing back is a matter of emptying the array', function () {
-    config()->set('tracing.response.headers', []);
+    config()->set('tracing.propagation.response_headers', []);
 
     expect($this->get('/probe')->assertOk()->headers->has('X-Trace-Id'))->toBeFalse();
 });
 
 test('an unknown header target is skipped rather than sent empty', function () {
-    config()->set('tracing.response.headers', ['X-Nope' => 'not_a_thing']);
+    config()->set('tracing.propagation.response_headers', ['X-Nope' => 'not_a_thing']);
 
     expect($this->get('/probe')->assertOk()->headers->has('X-Nope'))->toBeFalse();
 });

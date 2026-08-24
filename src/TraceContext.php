@@ -150,7 +150,7 @@ final readonly class TraceContext
             $keys->traceState => $this->traceState,
         ]);
 
-        Context::add((array) config('tracing.additional_context', []));
+        Context::add((array) config('tracing.context.additional', []));
 
         SpanOpened::announce($this);
     }

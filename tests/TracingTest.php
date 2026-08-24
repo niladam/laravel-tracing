@@ -121,7 +121,7 @@ test('hidden context travels to jobs but never reaches a log line', function () 
         ->and(Context::dehydrate()['hidden'])->toHaveKey('idempotency_key');
 });
 
-test('never_queue keys are stripped from job payloads but kept in the process', function () {
+test('local_only keys are left out of job payloads but kept in the process', function () {
     Context::add(['company_id' => 8, 'body.address' => 'Main St 1']);
 
     $dehydrated = Context::dehydrate();

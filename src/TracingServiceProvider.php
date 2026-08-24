@@ -36,16 +36,16 @@ class TracingServiceProvider extends PackageServiceProvider
         $this->app->singleton(Tracing::class);
 
         $this->app->singleton(ContextKeys::class, fn () => ContextKeys::fromArray(
-            (array) config('tracing.keys', []),
+            (array) config('tracing.context.keys', []),
         ));
 
         $this->app->singleton(SensitiveParameters::class, fn () => new SensitiveParameters(
-            attributes: (array) config('tracing.jobs.sensitive_attributes', [\SensitiveParameter::class]),
+            attributes: (array) config('tracing.context.jobs.sensitive_attributes', [\SensitiveParameter::class]),
         ));
 
         $this->app->singleton(Redactor::class, fn () => new Redactor(
-            patterns: (array) config('tracing.redact.keys', []),
-            replacement: (string) config('tracing.redact.replacement', '[redacted]'),
+            patterns: (array) config('tracing.logs.redact.keys', []),
+            replacement: (string) config('tracing.logs.redact.replacement', '[redacted]'),
         ));
 
         $this->app->singleton(OutgoingTrace::class, fn () => new OutgoingTrace(
@@ -56,10 +56,10 @@ class TracingServiceProvider extends PackageServiceProvider
             return;
         }
 
-        if (config('tracing.merge_log_context')) {
+        if (config('tracing.logs.merge_context')) {
             $this->app->bind(ContextLogProcessorContract::class, fn () => new ContextLogProcessor(
                 redactor: $this->app->make(Redactor::class),
-                flattenContext: (bool) config('tracing.flatten_context', false),
+                flattenContext: (bool) config('tracing.logs.flatten', false),
             ));
         }
     }
@@ -152,8 +152,8 @@ class TracingServiceProvider extends PackageServiceProvider
     protected function keepSensitiveContextOutOfJobs(): void
     {
         $patterns = [
-            ...(array) config('tracing.never_queue', []),
-            config('tracing.jobs.prefix', 'job').'.*',
+            ...(array) config('tracing.context.local_only', []),
+            config('tracing.context.jobs.prefix', 'job').'.*',
         ];
 
         Context::dehydrating(function (Repository $context) use ($patterns): void {
@@ -244,7 +244,7 @@ class TracingServiceProvider extends PackageServiceProvider
      */
     protected function propagatedDomains(): array
     {
-        $domains = config('tracing.domains') ?: [config('session.domain')];
+        $domains = config('tracing.propagation.domains') ?: [config('session.domain')];
 
         return array_values(array_filter(array_map(
             fn (mixed $domain) => ltrim((string) $domain, '.'),

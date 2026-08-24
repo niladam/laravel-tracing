@@ -95,14 +95,14 @@ Tracing::traceparent();   // to hand to a client this package does not cover
 ```php
 #[\SensitiveParameter] public string $cardToken,   // never recorded at all
 Context::addHidden('key', $value);                 // travels, never logged
-'redact' => ['keys' => ['*password*', '*token*']], // safety net for everything else
-'never_queue' => ['body.*'],                       // keeps bulk out of Redis
+'logs' => ['redact' => ['keys' => ['*password*']]],  // safety net for everything else
+'context' => ['local_only' => ['body.*']],         // keeps bulk out of Redis
 ```
 
 **Hand the id back to the caller**, so support can quote it instead of hunting for it:
 
 ```php
-'response' => ['headers' => ['X-Trace-Id' => 'trace_id']],
+'propagation' => ['response_headers' => ['X-Trace-Id' => 'trace_id']],
 ```
 
 **Only your own hosts get your trace.** `domains` defaults to `session.domain`, and matching is on a label boundary — `evilexample.com` and `example.s3.amazonaws.com` are somebody else's.

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\SensitiveParameters;
 
-beforeEach(fn () => config()->set('tracing.jobs.arguments', true));
+beforeEach(fn () => config()->set('tracing.context.jobs.arguments', true));
 
 test('a custom attribute is honoured alongside SensitiveParameter', function () {
     app()->instance(SensitiveParameters::class, new SensitiveParameters([
@@ -34,7 +34,7 @@ test('an attribute that is not listed is not honoured', function () {
 });
 
 test('the attribute list is driven by config', function () {
-    config()->set('tracing.jobs.sensitive_attributes', [ExcludeFromLogs::class]);
+    config()->set('tracing.context.jobs.sensitive_attributes', [ExcludeFromLogs::class]);
     app()->forgetInstance(SensitiveParameters::class);
 
     dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');

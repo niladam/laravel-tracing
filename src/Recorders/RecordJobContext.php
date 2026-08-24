@@ -38,7 +38,7 @@ class RecordJobContext implements Recorder
      */
     public function __invoke(object $event): array
     {
-        $prefix = (string) config('tracing.jobs.prefix', 'job');
+        $prefix = (string) config('tracing.context.jobs.prefix', 'job');
         $payload = $event->job->payload();
         $name = $this->jobName($event, $payload);
 
@@ -78,7 +78,7 @@ class RecordJobContext implements Recorder
      */
     protected function arguments(string $name, array $payload, string $prefix): array
     {
-        if (! config('tracing.jobs.arguments', false) || ! isset($payload['data']['command'])) {
+        if (! config('tracing.context.jobs.arguments', false) || ! isset($payload['data']['command'])) {
             return [];
         }
 

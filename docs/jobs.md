@@ -20,9 +20,8 @@ The child span matters more than it looks. Without it, a long-running worker sta
 ## Which job was it?
 
 ```php
-'jobs' => [
-    'enabled' => true,
-    'prefix'  => 'job',
+'context' => [
+    'jobs' => ['prefix' => 'job'],
 ],
 ```
 
@@ -45,8 +44,8 @@ These keys are **always** stripped from outgoing job payloads, so a job's childr
 Off by default:
 
 ```php
-'jobs' => [
-    'arguments' => true,
+'context' => [
+    'jobs' => ['arguments' => true],
 ],
 ```
 

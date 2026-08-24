@@ -32,7 +32,7 @@ abstract class TestCase extends Orchestra
         $app['router']->middlewareGroup('api', []);
 
         $app['config']->set('session.domain', '.example.test');
-        $app['config']->set('tracing.never_queue', ['body.*']);
+        $app['config']->set('tracing.context.local_only', ['body.*']);
 
         foreach ($this->bootConfig as $key => $value) {
             $app['config']->set($key, $value);
