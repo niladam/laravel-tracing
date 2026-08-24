@@ -125,15 +125,15 @@ Context::addHidden('key', $value);                 // travels, never logged
 | | | |
 | --- | --- | --- |
 | PHP | 8.2+ (8.3+ on Laravel 13) | tested |
-| Laravel 12 | `^12.61.1` | tested |
-| Laravel 13 | `^13.12.0` | tested |
+| Laravel 12 | `^12.1` | tested |
+| Laravel 13 | `^13.0` | tested |
 | Saloon | `^4.0`, optional | tested, and tested absent |
 
-Version floors are the earliest release free of a published security advisory, so this package is never the reason you end up on a vulnerable framework.
+The floors are where the APIs this package needs first appeared, nothing more. Keeping your framework patched is your application's business and `composer audit`'s — a package that pins a security floor only goes stale on the next advisory.
 
 ### Why not Laravel 11
 
-`Illuminate\Contracts\Log\ContextLogProcessor` was introduced in Laravel 12. Without it there is no supported way to put the trace on a log record, which is most of what this package does — so Laravel 11 is not a matter of testing effort, it simply has nothing to hook into.
+`Illuminate\Contracts\Log\ContextLogProcessor` arrived in **v12.1.0** — it exists in no Laravel 11 release. Without it there is no supported way to put the trace on a log record, which is most of what this package does, so Laravel 11 is not a matter of testing effort: there is nothing to hook into. That is also why the Laravel 12 floor is `^12.1` rather than `^12.0`.
 
 Saloon v3 is unsupported for a different reason: every release carries an unpatched advisory (`<4.0.0`), so there is no safe floor to point at.
 
