@@ -7,7 +7,7 @@
 ```php
 use Illuminate\Support\Facades\Context;
 
-Context::add(['company_id' => $company->id, 'plan' => $company->plan]);
+Context::add(['team_id' => $team->id, 'plan' => $team->plan]);
 Context::add('order_id', $order->id);
 ```
 
@@ -20,9 +20,9 @@ There is no registration step and no builder to hook into. Call it wherever you 
 ```php
 public function handle(): void
 {
-    Context::add('invoice_id', $this->invoice->id);
+    Context::add('order_id', $this->order->id);
 
-    foreach ($this->invoice->lines as $line) {
+    foreach ($this->order->lines as $line) {
         Context::add('line_id', $line->id);   // overwrites the previous value
 
         $this->process($line);                // every log line in here carries line_id

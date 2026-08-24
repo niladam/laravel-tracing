@@ -74,13 +74,13 @@ use Niladam\LaravelTracing\Facades\Tracing;
 Tracing::always(fn () => ['host' => gethostname()]);
 
 Tracing::authenticated('web', fn (User $user) => [
-    'company_id' => $user->current_company_id,
+    'team_id' => $user->current_team_id,
 ]);
 
-Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+Tracing::on(TeamSwitched::class, fn ($e) => ['team_id' => $e->team->id]);
 ```
 
-That last line is the part a middleware cannot do: `Context::add` overwrites, so the key **corrects itself** the moment the company changes. Snapshot it once at the start of a request and it is wrong for the rest of it.
+That last line is the part a middleware cannot do: `Context::add` overwrites, so the key **corrects itself** the moment the team changes. Snapshot it once at the start of a request and it is wrong for the rest of it.
 
 Anything you put in Laravel's own `Context` is traced too — there is no second store and nothing new to learn:
 

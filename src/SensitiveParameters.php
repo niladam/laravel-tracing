@@ -18,7 +18,7 @@ use Throwable;
  *
  * ```php
  * public function __construct(
- *     public string $invoiceId,
+ *     public string $orderId,
  *     #[\SensitiveParameter] public string $cardToken,
  * ) {}
  * ```

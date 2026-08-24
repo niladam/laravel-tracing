@@ -72,7 +72,7 @@ test('a log line names the keys that were masked', function () {
 })->note('The list makes the keys your patterns are missing obvious next to the ones they caught.');
 
 test('nothing masked means no redacted_keys at all', function () {
-    expect(logWithContext(['company_id' => 8]))->not->toHaveKey('redacted_keys');
+    expect(logWithContext(['team_id' => 8]))->not->toHaveKey('redacted_keys');
 });
 
 test('naming the masked keys can be switched off', function () {

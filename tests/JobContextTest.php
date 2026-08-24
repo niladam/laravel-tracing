@@ -58,25 +58,25 @@ class ProbeJob implements ShouldQueue
 }
 
 test('job arguments are recorded only when asked for', function () {
-    dispatch(new SecretiveJob('inv-1', 'tok_live_abc'))->onConnection('sync');
+    dispatch(new SecretiveJob('ord-1', 'tok_live_abc'))->onConnection('sync');
 
-    expect(Cache::get('probe.context'))->not->toHaveKey('job.arguments.invoiceId');
+    expect(Cache::get('probe.context'))->not->toHaveKey('job.arguments.orderId');
 
     config()->set('tracing.context.jobs.arguments', true);
 
-    dispatch(new SecretiveJob('inv-1', 'tok_live_abc'))->onConnection('sync');
+    dispatch(new SecretiveJob('ord-1', 'tok_live_abc'))->onConnection('sync');
 
-    expect(Cache::get('probe.context'))->toHaveKey('job.arguments.invoiceId');
+    expect(Cache::get('probe.context'))->toHaveKey('job.arguments.orderId');
 });
 
 test('a parameter marked SensitiveParameter never reaches the context', function () {
     config()->set('tracing.context.jobs.arguments', true);
 
-    dispatch(new SecretiveJob('inv-1', 'tok_live_abc'))->onConnection('sync');
+    dispatch(new SecretiveJob('ord-1', 'tok_live_abc'))->onConnection('sync');
 
     $context = Cache::get('probe.context');
 
-    expect($context['job.arguments.invoiceId'])->toBe('inv-1')
+    expect($context['job.arguments.orderId'])->toBe('ord-1')
         ->and($context)->not->toHaveKey('job.arguments.cardToken')
         ->and(json_encode($context))->not->toContain('tok_live_abc');
 });
@@ -84,7 +84,7 @@ test('a parameter marked SensitiveParameter never reaches the context', function
 test('remaining arguments still pass through redaction', function () {
     config()->set('tracing.context.jobs.arguments', true);
 
-    dispatch(new SecretiveJob('inv-1', 'tok_live_abc', 'hunter2'))->onConnection('sync');
+    dispatch(new SecretiveJob('ord-1', 'tok_live_abc', 'hunter2'))->onConnection('sync');
 
     expect(Cache::get('probe.context')['job.arguments.password'])->toBe('[redacted]');
 });
@@ -94,7 +94,7 @@ class SecretiveJob implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public string $invoiceId,
+        public string $orderId,
         #[SensitiveParameter] public string $cardToken,
         public ?string $password = null,
     ) {}

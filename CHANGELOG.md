@@ -6,7 +6,7 @@ All notable changes to `laravel-tracing` will be documented in this file.
 
 Context is now recorded **at the moment it becomes true**, rather than snapshotted at a point in the request.
 
-That sounds small. It means a key can correct itself — switch company mid-request and every line after it, and every job dispatched after it, carries the new value. A middleware that snapshots once cannot do that.
+That sounds small. It means a key can correct itself — switch teams mid-request and every line after it, and every job dispatched after it, carries the new value. A middleware that snapshots once cannot do that.
 
 ### Security fix
 
@@ -40,7 +40,7 @@ A recorder names the event it waits for and returns keys to merge, so nothing de
 'context' => ['additional' => ['deployment' => env('DEPLOYMENT_ID')]],   // constant, no code
 
 Tracing::always(fn () => ['host' => gethostname()]);
-Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
+Tracing::authenticated('web', fn (User $user) => ['team_id' => $user->current_team_id]);
 Tracing::on(OrderShipped::class, fn ($e) => ['order_id' => $e->order->id]);
 ```
 
@@ -87,10 +87,6 @@ php artisan vendor:publish --tag=laravel-tracing-config --force
 
 `never_queue` read as "never queue these jobs"; it keeps context out of a job payload, so it is `local_only` now.
 
----
-
-104 tests. Verified against PHP 8.2–8.4, Laravel 12 and 13, and with Saloon uninstalled.
-
 ## v1.0.0 - 2026-08-24
 
 Initial release. W3C Trace Context for Laravel — one id follows a request through its own log lines, the queued jobs it dispatches, the jobs *those* dispatch, and the internal services it calls.
@@ -116,7 +112,3 @@ Initial release. W3C Trace Context for Laravel — one id follows a request thro
 - **Response headers** hand the trace id back to the caller, so support can quote a reference instead of hunting for it.
 - **Upstream request ids** — the first of `X-Request-Id` / `CF-Ray` present is recorded alongside the trace, so a line in your edge's logs matches a trace in yours.
 - **Renameable context keys**, to drop into a pipeline that already expects particular names.
-
-### Requirements
-
-PHP 8.2+ and Laravel 12, or PHP 8.3+ and Laravel 13. Saloon v4 optional.

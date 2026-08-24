@@ -60,7 +60,7 @@ class ChargeCard implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public string $invoiceId,
+        public string $orderId,
         #[\SensitiveParameter] public string $cardToken,
     ) {}
 }
@@ -68,7 +68,7 @@ class ChargeCard implements ShouldQueue
 
 ```
 job.excluded_parameters  ["cardToken"]     ← named, so you know it was withheld
-job.arguments.invoiceId  inv-1
+job.arguments.orderId  ord-1
 ```
 
 `cardToken` is absent rather than masked — it never enters the context at all.
@@ -82,7 +82,7 @@ Anywhere inside the job, at any point:
 ```php
 public function handle(): void
 {
-    Context::add('invoice_id', $this->invoice->id);
+    Context::add('order_id', $this->order->id);
     // …
 }
 ```
