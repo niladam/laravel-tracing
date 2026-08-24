@@ -63,3 +63,23 @@ test('flattening does not reach job payloads', function () {
         ->and(array_keys(Context::dehydrate()['data']))->toContain('filters')
         ->and(Context::get('filters'))->toBe(['status' => 'open']);
 });
+
+test('a log line names the keys that were masked', function () {
+    $context = logWithContext(['body' => ['address' => 'Main St 1', 'password' => 'hunter2']]);
+
+    expect($context['redacted_keys'])->toBe(['body.password'])
+        ->and($context['body']['password'])->toBe('[redacted]');
+})->note('The list makes the keys your patterns are missing obvious next to the ones they caught.');
+
+test('nothing masked means no redacted_keys at all', function () {
+    expect(logWithContext(['company_id' => 8]))->not->toHaveKey('redacted_keys');
+});
+
+test('naming the masked keys can be switched off', function () {
+    config()->set('tracing.logs.redact.name_redacted_keys', false);
+
+    $context = logWithContext(['body' => ['password' => 'hunter2']]);
+
+    expect($context)->not->toHaveKey('redacted_keys')
+        ->and($context['body']['password'])->toBe('[redacted]');
+})->note('Switching it off hides the name, never the masking.');

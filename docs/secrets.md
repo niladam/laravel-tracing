@@ -87,6 +87,16 @@ Context added elsewhere in your application — by a request-enrichment middlewa
 
 Patterns are case-insensitive; `*` matches any run of characters, so `*password*` also covers `body.password_confirmation` and `PASSWORD`.
 
+Each line names what was masked, so the keys your patterns are **missing** are obvious right next to the ones they caught:
+
+```
+body.password    [redacted]
+body.api_key     sk_live_abc…          ← no pattern matched this one
+redacted_keys    ["body.password"]
+```
+
+Absent when nothing was masked. Switch it off with `logs.redact.name_redacted_keys` if a key name is more than you want written down — that hides the name, never the masking.
+
 Redaction descends into nested arrays, matching a value by its own key **or** its full dotted path — so `['body' => ['password' => '…']]` is caught by `*password*`, and a pattern like `body.address` targets exactly one field. A key that matches is replaced wholesale, branch and all, rather than being walked into.
 
 This masks the value **in logs only**. The real value is still in the running process and, unless you also use `context.local_only`, still written to job payloads. Redaction is a backstop, not a substitute for not adding the value.

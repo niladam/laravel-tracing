@@ -60,3 +60,20 @@ test('a redacted branch is not descended into', function () {
     expect($redactor->apply(['secret_bag' => ['a' => 1, 'b' => 2]]))
         ->toBe(['secret_bag' => '[redacted]']);
 });
+
+test('it reports the key paths it masked', function () {
+    $redactor = new Redactor(['*password*', '*token*'], '[redacted]');
+
+    $redactor->apply([
+        'company_id' => 8,
+        'body' => ['password' => 'hunter2', 'nested' => ['api_token' => 'abc']],
+    ], $redacted);
+
+    expect($redacted)->toBe(['body.password', 'body.nested.api_token']);
+});
+
+test('it reports nothing when nothing matched', function () {
+    (new Redactor(['*password*'], '[redacted]'))->apply(['company_id' => 8], $redacted);
+
+    expect($redacted)->toBe([]);
+});

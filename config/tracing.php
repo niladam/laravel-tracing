@@ -238,6 +238,17 @@ return [
             ],
 
             'replacement' => '[redacted]',
+
+            /*
+             * Name what was masked, as a "redacted_keys" list on the line.
+             *
+             * Scanning for "[redacted]" tells you what was caught; the list
+             * tells you the same at a glance, and makes the keys your patterns
+             * are missing obvious right next to it. Absent when nothing was
+             * masked. A key name is not a value, but it does say the field
+             * exists — switch it off if that is more than you want written.
+             */
+            'name_redacted_keys' => (bool) env('TRACING_NAME_REDACTED_KEYS', true),
         ],
     ],
 

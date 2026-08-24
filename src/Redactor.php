@@ -25,11 +25,14 @@ class Redactor
 
     /**
      * @param  array<string, mixed>  $context
+     * @param  list<string>|null  $redacted  Filled with the key paths that were masked.
      * @return array<string, mixed>
      */
-    public function apply(array $context): array
+    public function apply(array $context, ?array &$redacted = null): array
     {
-        return $this->patterns === [] ? $context : $this->redact($context, '');
+        $redacted = [];
+
+        return $this->patterns === [] ? $context : $this->redact($context, '', $redacted);
     }
 
     public function isSensitive(string $key): bool
@@ -45,21 +48,23 @@ class Redactor
      * nothing, and be written out in full.
      *
      * @param  array<array-key, mixed>  $context
+     * @param  list<string>  $redacted
      * @return array<array-key, mixed>
      */
-    protected function redact(array $context, string $prefix): array
+    protected function redact(array $context, string $prefix, array &$redacted): array
     {
         foreach ($context as $key => $value) {
             $path = $prefix === '' ? (string) $key : "{$prefix}.{$key}";
 
             if ($this->isSensitive((string) $key) || $this->isSensitive($path)) {
                 $context[$key] = $this->replacement;
+                $redacted[] = $path;
 
                 continue;
             }
 
             if (is_array($value)) {
-                $context[$key] = $this->redact($value, $path);
+                $context[$key] = $this->redact($value, $path, $redacted);
             }
         }
 

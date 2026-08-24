@@ -40,7 +40,28 @@ class ContextLogProcessor implements ContextLogProcessorContract
             ...$record->context,
         ];
 
-        return $record->with(context: $this->redactor->apply($this->flatten($context)));
+        $context = $this->redactor->apply($this->flatten($context), $redacted);
+
+        return $record->with(context: $this->named($context, $redacted));
+    }
+
+    /**
+     * Name what was masked, so the keys a pattern is missing are visible.
+     *
+     * Scanning a blob for "[redacted]" tells you what was caught; a list tells
+     * you the same at a glance, and makes the gaps obvious next to it.
+     *
+     * @param  array<string, mixed>  $context
+     * @param  list<string>  $redacted
+     * @return array<string, mixed>
+     */
+    protected function named(array $context, array $redacted): array
+    {
+        if ($redacted === [] || ! config('tracing.logs.redact.name_redacted_keys', true)) {
+            return $context;
+        }
+
+        return [...$context, 'redacted_keys' => $redacted];
     }
 
     /**
