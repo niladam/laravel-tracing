@@ -104,12 +104,12 @@ test('log records carry the trace merged into a single context blob', function (
 });
 
 test('sensitive context is masked before it reaches a log line', function () {
-    Context::add(['company_id' => 8, 'body.password' => 'hunter2']);
+    Context::add(['team_id' => 8, 'body.password' => 'hunter2']);
 
     Log::channel('probe')->info('hello');
 
     expect(probeRecords()[0]->context)
-        ->toMatchArray(['company_id' => 8, 'body.password' => '[redacted]']);
+        ->toMatchArray(['team_id' => 8, 'body.password' => '[redacted]']);
 });
 
 test('hidden context travels to jobs but never reaches a log line', function () {
@@ -122,11 +122,11 @@ test('hidden context travels to jobs but never reaches a log line', function () 
 });
 
 test('local_only keys are left out of job payloads but kept in the process', function () {
-    Context::add(['company_id' => 8, 'body.address' => 'Main St 1']);
+    Context::add(['team_id' => 8, 'body.address' => 'Main St 1']);
 
     $dehydrated = Context::dehydrate();
 
-    expect($dehydrated['data'])->toHaveKey('company_id')
+    expect($dehydrated['data'])->toHaveKey('team_id')
         ->and($dehydrated['data'])->not->toHaveKey('body.address')
         ->and(Context::get('body.address'))->toBe('Main St 1');
 });

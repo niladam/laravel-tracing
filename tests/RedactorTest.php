@@ -8,13 +8,13 @@ test('it masks keys matching a pattern and leaves the rest alone', function () {
     $redactor = new Redactor(['*password*', '*token*'], '[redacted]');
 
     expect($redactor->apply([
-        'company_id' => 8,
+        'team_id' => 8,
         'body.password' => 'hunter2',
         'body.password_confirmation' => 'hunter2',
         'API_TOKEN' => 'abc',
         'trace_id' => 'keepme',
     ]))->toBe([
-        'company_id' => 8,
+        'team_id' => 8,
         'body.password' => '[redacted]',
         'body.password_confirmation' => '[redacted]',
         'API_TOKEN' => '[redacted]',
@@ -31,14 +31,14 @@ test('it descends into nested arrays', function () {
     $redactor = new Redactor(['*password*', '*token*'], '[redacted]');
 
     expect($redactor->apply([
-        'company_id' => 8,
+        'team_id' => 8,
         'body' => [
             'address' => 'Main St 1',
             'password' => 'hunter2',
             'nested' => ['api_token' => 'abc'],
         ],
     ]))->toBe([
-        'company_id' => 8,
+        'team_id' => 8,
         'body' => [
             'address' => 'Main St 1',
             'password' => '[redacted]',
@@ -65,7 +65,7 @@ test('it reports the key paths it masked', function () {
     $redactor = new Redactor(['*password*', '*token*'], '[redacted]');
 
     $redactor->apply([
-        'company_id' => 8,
+        'team_id' => 8,
         'body' => ['password' => 'hunter2', 'nested' => ['api_token' => 'abc']],
     ], $redacted);
 
@@ -73,7 +73,7 @@ test('it reports the key paths it masked', function () {
 });
 
 test('it reports nothing when nothing matched', function () {
-    (new Redactor(['*password*'], '[redacted]'))->apply(['company_id' => 8], $redacted);
+    (new Redactor(['*password*'], '[redacted]'))->apply(['team_id' => 8], $redacted);
 
     expect($redacted)->toBe([]);
 });

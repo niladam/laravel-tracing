@@ -17,11 +17,11 @@ test('a custom attribute is honoured alongside SensitiveParameter', function () 
         ExcludeFromLogs::class,
     ]));
 
-    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+    dispatch(new TwoAttributeJob('ord-1', 'tok_live', 'internal'))->onConnection('sync');
 
     $context = Cache::get('probe.attrs');
 
-    expect($context['job.arguments.invoiceId'])->toBe('inv-1')
+    expect($context['job.arguments.orderId'])->toBe('ord-1')
         ->and($context)->not->toHaveKey('job.arguments.cardToken')
         ->and($context)->not->toHaveKey('job.arguments.note');
 });
@@ -29,7 +29,7 @@ test('a custom attribute is honoured alongside SensitiveParameter', function () 
 test('an attribute that is not listed is not honoured', function () {
     app()->instance(SensitiveParameters::class, new SensitiveParameters([SensitiveParameter::class]));
 
-    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+    dispatch(new TwoAttributeJob('ord-1', 'tok_live', 'internal'))->onConnection('sync');
 
     expect(Cache::get('probe.attrs')['job.arguments.note'])->toBe('internal');
 });
@@ -38,7 +38,7 @@ test('the attribute list is driven by config', function () {
     config()->set('tracing.context.jobs.sensitive_attributes', [ExcludeFromLogs::class]);
     app()->forgetInstance(SensitiveParameters::class);
 
-    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+    dispatch(new TwoAttributeJob('ord-1', 'tok_live', 'internal'))->onConnection('sync');
 
     $context = Cache::get('probe.attrs');
 
@@ -59,7 +59,7 @@ class TwoAttributeJob implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public string $invoiceId,
+        public string $orderId,
         #[SensitiveParameter] public string $cardToken,
         #[ExcludeFromLogs] public string $note,
     ) {}
@@ -71,7 +71,7 @@ class TwoAttributeJob implements ShouldQueue
 }
 
 test('the package names what it withheld, so absence is not ambiguous', function () {
-    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+    dispatch(new TwoAttributeJob('ord-1', 'tok_live', 'internal'))->onConnection('sync');
 
     $context = Cache::get('probe.attrs');
 
@@ -80,7 +80,7 @@ test('the package names what it withheld, so absence is not ambiguous', function
 });
 
 test('nothing withheld means no excluded_parameters key at all', function () {
-    dispatch(new OpenJob('inv-1'))->onConnection('sync');
+    dispatch(new OpenJob('ord-1'))->onConnection('sync');
 
     expect(Cache::get('probe.attrs'))->not->toHaveKey('job.excluded_parameters');
 });
@@ -96,7 +96,7 @@ class OpenJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public string $invoiceId) {}
+    public function __construct(public string $orderId) {}
 
     public function handle(): void
     {
@@ -107,11 +107,11 @@ class OpenJob implements ShouldQueue
 test('naming the withheld parameters can be switched off', function () {
     config()->set('tracing.context.jobs.name_excluded_parameters', false);
 
-    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+    dispatch(new TwoAttributeJob('ord-1', 'tok_live', 'internal'))->onConnection('sync');
 
     $context = Cache::get('probe.attrs');
 
     expect($context)->not->toHaveKey('job.excluded_parameters')
         ->and($context)->not->toHaveKey('job.arguments.cardToken')
-        ->and($context['job.arguments.invoiceId'])->toBe('inv-1');
+        ->and($context['job.arguments.orderId'])->toBe('ord-1');
 })->note('Switching it off hides the name, never the withholding itself.');
