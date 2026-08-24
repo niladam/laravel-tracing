@@ -40,6 +40,10 @@ class TracingServiceProvider extends PackageServiceProvider
             (array) config('tracing.keys', []),
         ));
 
+        $this->app->singleton(SensitiveParameters::class, fn () => new SensitiveParameters(
+            attributes: (array) config('tracing.redact.attributes', [\SensitiveParameter::class]),
+        ));
+
         $this->app->singleton(Redactor::class, fn () => new Redactor(
             patterns: (array) config('tracing.redact.keys', []),
             replacement: (string) config('tracing.redact.replacement', '[redacted]'),

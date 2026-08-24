@@ -124,6 +124,17 @@ return [
         ],
 
         'replacement' => '[redacted]',
+
+        /*
+         * Attributes that mark a constructor parameter as sensitive, so its
+         * value is never recorded when "jobs.arguments" is on.
+         *
+         * PHP's own #[\SensitiveParameter] is honoured out of the box. Add your
+         * own here if the application already has one.
+         */
+        'attributes' => [
+            SensitiveParameter::class,
+        ],
     ],
 
     /*

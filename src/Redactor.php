@@ -29,21 +29,40 @@ class Redactor
      */
     public function apply(array $context): array
     {
-        if ($this->patterns === []) {
-            return $context;
-        }
-
-        foreach ($context as $key => $value) {
-            if ($this->isSensitive((string) $key)) {
-                $context[$key] = $this->replacement;
-            }
-        }
-
-        return $context;
+        return $this->patterns === [] ? $context : $this->redact($context, '');
     }
 
     public function isSensitive(string $key): bool
     {
         return Str::is($this->patterns, Str::lower($key));
+    }
+
+    /**
+     * Walk nested values too, matching a key by its own name or its full path.
+     *
+     * Without the descent, a secret is only ever as visible as its outermost
+     * key: ['body' => ['password' => '…']] would be checked as "body", match
+     * nothing, and be written out in full.
+     *
+     * @param  array<array-key, mixed>  $context
+     * @return array<array-key, mixed>
+     */
+    protected function redact(array $context, string $prefix): array
+    {
+        foreach ($context as $key => $value) {
+            $path = $prefix === '' ? (string) $key : "{$prefix}.{$key}";
+
+            if ($this->isSensitive((string) $key) || $this->isSensitive($path)) {
+                $context[$key] = $this->replacement;
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $context[$key] = $this->redact($value, $path);
+            }
+        }
+
+        return $context;
     }
 }

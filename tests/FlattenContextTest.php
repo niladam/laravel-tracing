@@ -40,18 +40,17 @@ test('flattening leaves empty arrays intact, as Arr::dot does', function () {
         ->toMatchArray(['body' => [], 'query' => []]);
 });
 
-test('flattening exposes a nested secret to redaction', function () {
-    config()->set('tracing.flatten_context', true);
+test('a nested secret is redacted whether or not flattening is on', function (bool $flatten) {
+    config()->set('tracing.flatten_context', $flatten);
 
-    expect(logWithContext(['body' => ['address' => 'Main St 1', 'password' => 'hunter2']]))
-        ->toMatchArray(['body.address' => 'Main St 1', 'body.password' => '[redacted]']);
-});
+    $context = logWithContext(['body' => ['address' => 'Main St 1', 'password' => 'hunter2']]);
 
-test('without flattening a nested secret slips past redaction', function () {
-    $context = logWithContext(['body' => ['password' => 'hunter2']]);
-
-    expect($context['body']['password'])->toBe('hunter2');
-})->note('Documents why flatten runs before redact — the key checked is "body", not "body.password".');
+    expect($flatten ? $context['body.password'] : $context['body']['password'])->toBe('[redacted]')
+        ->and($flatten ? $context['body.address'] : $context['body']['address'])->toBe('Main St 1');
+})->with([
+    'flattened' => [true],
+    'nested' => [false],
+]);
 
 test('flattening does not reach job payloads', function () {
     config()->set('tracing.flatten_context', true);

@@ -106,7 +106,7 @@ Context::addHidden('key', $value);                 // travels, never logged
 
 **Only your own hosts get your trace.** `domains` defaults to `session.domain`, and matching is on a label boundary — `evilexample.com` and `example.s3.amazonaws.com` are somebody else's.
 
-**Flatten nested context** for log pipelines that dislike arrays (New Relic among them) with `flatten_context` — logs only, so job payloads keep their real structure. It also lets `redact` see inside nested values, which it otherwise cannot.
+**Flatten nested context** for log pipelines that dislike arrays (New Relic among them) with `flatten_context` — logs only, so job payloads keep their real structure. Purely cosmetic: redaction descends into nested values either way.
 
 **One log line, not two.** Laravel writes ambient context to a record's `extra`, which `LineFormatter` renders as a *second* JSON blob. This merges both into `context` and leaves `extra` empty — set `merge_log_context` to `false` for Laravel's default split.
 
