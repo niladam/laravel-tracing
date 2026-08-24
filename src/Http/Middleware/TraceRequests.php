@@ -8,6 +8,8 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
 use Niladam\LaravelTracing\ContextKeys;
+use Niladam\LaravelTracing\Events\RequestReceived;
+use Niladam\LaravelTracing\Recorders\RecordAuthenticatedUser;
 use Niladam\LaravelTracing\TraceContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,6 +36,10 @@ class TraceRequests
         )->putInContext();
 
         $this->recordUpstreamRequestId($request);
+
+        event(new RequestReceived($request));
+
+        app(RecordAuthenticatedUser::class)->watch($request);
     }
 
     /**
@@ -45,7 +51,7 @@ class TraceRequests
      */
     protected function recordUpstreamRequestId(Request $request): void
     {
-        foreach ((array) config('tracing.inbound.request_id_headers', []) as $header) {
+        foreach ((array) config('tracing.propagation.inbound_request_ids', []) as $header) {
             $value = $request->header($header);
 
             if (filled($value)) {
@@ -67,7 +73,7 @@ class TraceRequests
             return $response;
         }
 
-        foreach ((array) config('tracing.response.headers', []) as $header => $part) {
+        foreach ((array) config('tracing.propagation.response_headers', []) as $header => $part) {
             $value = match ($part) {
                 'traceparent' => $span->toTraceparent(),
                 'trace_id' => $span->traceId,

@@ -22,11 +22,19 @@ use Throwable;
  *     #[\SensitiveParameter] public string $cardToken,
  * ) {}
  * ```
+ *
+ * Applications with an attribute of their own can list it in
+ * `tracing.context.jobs.sensitive_attributes` and have it honoured the same way.
  */
 class SensitiveParameters
 {
     /** @var array<class-string, list<string>> */
     private array $cache = [];
+
+    /**
+     * @param  list<class-string>  $attributes  Attributes that mark a parameter as sensitive.
+     */
+    public function __construct(private readonly array $attributes = [SensitiveParameter::class]) {}
 
     /**
      * @return list<string>
@@ -41,7 +49,7 @@ class SensitiveParameters
      */
     protected function discover(string $class): array
     {
-        if (! class_exists($class)) {
+        if ($this->attributes === [] || ! class_exists($class)) {
             return [];
         }
 
@@ -53,12 +61,23 @@ class SensitiveParameters
 
         $parameters = array_filter(
             $constructor?->getParameters() ?? [],
-            fn (ReflectionParameter $parameter) => $parameter->getAttributes(SensitiveParameter::class) !== [],
+            fn (ReflectionParameter $parameter) => $this->isMarked($parameter),
         );
 
         return array_values(array_map(
             fn (ReflectionParameter $parameter) => $parameter->getName(),
             $parameters,
         ));
+    }
+
+    protected function isMarked(ReflectionParameter $parameter): bool
+    {
+        foreach ($parameter->getAttributes() as $attribute) {
+            if (in_array($attribute->getName(), $this->attributes, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

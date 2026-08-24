@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Niladam\LaravelTracing\Listeners;
+namespace Niladam\LaravelTracing\Recorders;
 
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Context;
+use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Contracts\Recorder;
 use Niladam\LaravelTracing\Redactor;
 use Niladam\LaravelTracing\SensitiveParameters;
 use Throwable;
@@ -20,27 +21,55 @@ use Throwable;
  * These keys never leave the worker: the provider strips the prefix on the way
  * into a job payload, so a job's children carry their own details, not its.
  */
-class RecordJobContext
+class RecordJobContext implements Recorder
 {
+    public static function listensTo(): string
+    {
+        return JobProcessing::class;
+    }
+
     public function __construct(
         private readonly SensitiveParameters $sensitive,
         private readonly Redactor $redactor,
     ) {}
 
-    public function handle(JobProcessing $event): void
+    /**
+     * @return array<string, mixed>
+     */
+    public function __invoke(object $event): array
     {
-        $prefix = (string) config('tracing.jobs.prefix', 'job');
+        $prefix = (string) config('tracing.context.jobs.prefix', 'job');
         $payload = $event->job->payload();
         $name = $this->jobName($event, $payload);
 
-        Context::add([
+        return [
+            'channel' => Channel::Queue,
             "{$prefix}.name" => $name,
             "{$prefix}.connection" => $event->connectionName,
             "{$prefix}.queue" => $event->job->getQueue(),
             "{$prefix}.attempts" => $event->job->attempts(),
             "{$prefix}.uuid" => $event->job->uuid(),
             ...$this->arguments($name, $payload, $prefix),
-        ]);
+        ];
+    }
+
+    /**
+     * Name what was withheld, so a missing argument is not confused with one
+     * that was never set.
+     *
+     * A name is not a value, but it still says the job holds a "cardToken" —
+     * switch it off if even that is more than you want written down.
+     *
+     * @param  list<string>  $excluded
+     * @return array<string, list<string>>
+     */
+    protected function withheld(array $excluded, string $prefix): array
+    {
+        if ($excluded === [] || ! config('tracing.context.jobs.name_excluded_parameters', true)) {
+            return [];
+        }
+
+        return ["{$prefix}.excluded_parameters" => $excluded];
     }
 
     /**
@@ -68,7 +97,7 @@ class RecordJobContext
      */
     protected function arguments(string $name, array $payload, string $prefix): array
     {
-        if (! config('tracing.jobs.arguments', false) || ! isset($payload['data']['command'])) {
+        if (! config('tracing.context.jobs.arguments', false) || ! isset($payload['data']['command'])) {
             return [];
         }
 
@@ -82,11 +111,18 @@ class RecordJobContext
             return [];
         }
 
-        $properties = Arr::except($properties, $this->sensitive->for($name));
+        $excluded = $this->sensitive->for($name);
 
-        return Arr::prependKeysWith(
-            $this->redactor->apply(Arr::dot($properties)),
-            "{$prefix}.arguments.",
-        );
+        return [
+            /*
+             * Naming what was withheld, so a missing argument is not confused
+             * with one that was never there.
+             */
+            ...$this->withheld($excluded, $prefix),
+            ...Arr::prependKeysWith(
+                $this->redactor->apply(Arr::dot(Arr::except($properties, $excluded))),
+                "{$prefix}.arguments.",
+            ),
+        ];
     }
 }

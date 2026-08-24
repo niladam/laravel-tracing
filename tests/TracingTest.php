@@ -121,14 +121,14 @@ test('hidden context travels to jobs but never reaches a log line', function () 
         ->and(Context::dehydrate()['hidden'])->toHaveKey('idempotency_key');
 });
 
-test('never_queue keys are stripped from job payloads but kept in the process', function () {
-    Context::add(['company_id' => 8, 'body.iban' => 'RO49AAAA1B31007593840000']);
+test('local_only keys are left out of job payloads but kept in the process', function () {
+    Context::add(['company_id' => 8, 'body.address' => 'Main St 1']);
 
     $dehydrated = Context::dehydrate();
 
     expect($dehydrated['data'])->toHaveKey('company_id')
-        ->and($dehydrated['data'])->not->toHaveKey('body.iban')
-        ->and(Context::get('body.iban'))->toBe('RO49AAAA1B31007593840000');
+        ->and($dehydrated['data'])->not->toHaveKey('body.address')
+        ->and(Context::get('body.address'))->toBe('Main St 1');
 });
 
 test('the facade exposes the current trace', function () {

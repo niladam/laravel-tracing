@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Facade;
 use Niladam\LaravelTracing\TraceContext;
 
 /**
+ * @method static \Niladam\LaravelTracing\Tracing always(\Closure|string $recorder)
+ * @method static \Niladam\LaravelTracing\Tracing on(string $event, \Closure|string $recorder)
+ * @method static \Niladam\LaravelTracing\Tracing authenticated(string $guard, \Closure|string $recorder)
+ * @method static list<string> sensitiveParametersFor(string $class)
  * @method static TraceContext|null trace()
  * @method static string|null traceId()
  * @method static string|null spanId()

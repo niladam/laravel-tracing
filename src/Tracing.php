@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Niladam\LaravelTracing;
 
+use Closure;
+use Illuminate\Auth\Events\Authenticated;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Event;
+use Niladam\LaravelTracing\Events\SpanOpened;
 
 /**
  * Reads the trace the current request, job or command is running in.
@@ -16,6 +21,96 @@ use Illuminate\Support\Facades\Context;
  */
 class Tracing
 {
+    /** @var array<string, list<callable>> Guard name (or '*') to user recorders. */
+    private array $userRecorders = [];
+
+    /**
+     * Merge context whenever an event fires.
+     *
+     * The recorder returns an array of keys, and may be a closure or the name
+     * of an invokable class, so a growing list can move out of the closure and
+     * into its own testable class without changing the call site.
+     *
+     * ```php
+     * Tracing::on(OrderShipped::class, fn ($event) => ['order_id' => $event->order->id]);
+     * Tracing::on(OrderShipped::class, ShipmentContext::class);
+     * ```
+     */
+    public function on(string $event, Closure|string $recorder): static
+    {
+        Event::listen($event, function (...$payload) use ($recorder): void {
+            $keys = $this->resolve($recorder)(...$payload);
+
+            if (is_array($keys) && $keys !== []) {
+                Context::add($keys);
+            }
+        });
+
+        return $this;
+    }
+
+    /**
+     * Merge context into every unit of work — request, job run and command.
+     *
+     * The light way to add a key or two that have no moment of their own. When
+     * it grows, or needs dependencies, write a Recorder and list it in config.
+     *
+     * ```php
+     * Tracing::always(fn () => ['deployment' => config('app.deployment')]);
+     * ```
+     */
+    public function always(Closure|string $recorder): static
+    {
+        return $this->on(SpanOpened::class, $recorder);
+    }
+
+    /**
+     * Merge context the moment a guard answers with a user.
+     *
+     * Works for session and stateless guards alike; pass '*' for any guard.
+     *
+     * ```php
+     * Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
+     * ```
+     */
+    public function authenticated(string $guard, Closure|string $recorder): static
+    {
+        $this->userRecorders[$guard][] = $this->resolve($recorder);
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     *
+     * @return Collection<int, callable>
+     */
+    public function recordersFor(?string $guard): Collection
+    {
+        return new Collection([
+            ...$this->userRecorders['*'] ?? [],
+            ...$this->userRecorders[$guard] ?? [],
+        ]);
+    }
+
+    protected function resolve(Closure|string $recorder): callable
+    {
+        return $recorder instanceof Closure ? $recorder : app($recorder)(...);
+    }
+
+    /**
+     * The constructor parameters a class has marked as sensitive.
+     *
+     * The same list the package uses to decide what to withhold from job
+     * arguments — ask it rather than reimplementing the reflection.
+     *
+     * @return list<string>
+     */
+    public function sensitiveParametersFor(string $class): array
+    {
+        return app(SensitiveParameters::class)->for($class);
+    }
+
     public function trace(): ?TraceContext
     {
         return TraceContext::fromContext();

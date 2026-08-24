@@ -7,8 +7,8 @@ The fastest way to debug a report of "it broke around 3pm" is to have the id alr
 ## Configuration
 
 ```php
-'response' => [
-    'headers' => [
+'propagation' => [
+    'response_headers' => [
         'X-Trace-Id' => 'trace_id',
     ],
 ],
@@ -27,7 +27,7 @@ Anything else is skipped rather than sent empty. Empty the array to send nothing
 Send several if you like:
 
 ```php
-'headers' => [
+'response_headers' => [
     'X-Trace-Id' => 'trace_id',
     'traceparent' => 'traceparent',
 ],

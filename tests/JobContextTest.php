@@ -42,12 +42,6 @@ test('job context reaches the log line', function () {
     expect(probeRecords()[0]->context)->toMatchArray(['job.name' => ProbeJob::class]);
 });
 
-test('job context can be turned off', function () {
-    config()->set('tracing.jobs.enabled', false);
-
-    expect(config('tracing.jobs.enabled'))->toBeFalse();
-});
-
 class ProbeJob implements ShouldQueue
 {
     use Queueable;
@@ -68,7 +62,7 @@ test('job arguments are recorded only when asked for', function () {
 
     expect(Cache::get('probe.context'))->not->toHaveKey('job.arguments.invoiceId');
 
-    config()->set('tracing.jobs.arguments', true);
+    config()->set('tracing.context.jobs.arguments', true);
 
     dispatch(new SecretiveJob('inv-1', 'tok_live_abc'))->onConnection('sync');
 
@@ -76,7 +70,7 @@ test('job arguments are recorded only when asked for', function () {
 });
 
 test('a parameter marked SensitiveParameter never reaches the context', function () {
-    config()->set('tracing.jobs.arguments', true);
+    config()->set('tracing.context.jobs.arguments', true);
 
     dispatch(new SecretiveJob('inv-1', 'tok_live_abc'))->onConnection('sync');
 
@@ -88,7 +82,7 @@ test('a parameter marked SensitiveParameter never reaches the context', function
 });
 
 test('remaining arguments still pass through redaction', function () {
-    config()->set('tracing.jobs.arguments', true);
+    config()->set('tracing.context.jobs.arguments', true);
 
     dispatch(new SecretiveJob('inv-1', 'tok_live_abc', 'hunter2'))->onConnection('sync');
 

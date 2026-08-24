@@ -21,10 +21,12 @@ Inbound headers are validated strictly — right shape, version not `ff`, neithe
 If your log pipeline already expects particular names, rename rather than reformat:
 
 ```php
-'keys' => [
-    'trace_id'       => 'dd.trace_id',
-    'span_id'        => 'dd.span_id',
-    'parent_span_id' => 'dd.parent_id',
+'context' => [
+    'keys' => [
+        'trace_id'       => 'dd.trace_id',
+        'span_id'        => 'dd.span_id',
+        'parent_span_id' => 'dd.parent_id',
+    ],
 ],
 ```
 
@@ -35,8 +37,8 @@ Partial renames are fine — anything you leave out keeps its default. The facad
 Behind Cloudflare, a load balancer or an API gateway, the edge has usually already labelled the request:
 
 ```php
-'inbound' => [
-    'request_id_headers' => ['X-Request-Id', 'CF-Ray'],
+'propagation' => [
+    'inbound_request_ids' => ['X-Request-Id', 'CF-Ray'],
 ],
 ```
 
@@ -49,7 +51,9 @@ If the edge sends a real `traceparent`, that wins and the trace simply continues
 Only hosts you own:
 
 ```php
-'domains' => ['example.com'],
+'propagation' => [
+    'domains' => ['example.com'],
+],
 ```
 
 Empty falls back to `session.domain`. Matching is on a label boundary:
