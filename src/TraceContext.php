@@ -148,5 +148,7 @@ final readonly class TraceContext
             $keys->traceFlags => $this->traceFlags,
             $keys->traceState => $this->traceState,
         ]);
+
+        Context::add((array) config('tracing.additional_context', []));
     }
 }

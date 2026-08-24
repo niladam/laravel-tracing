@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Niladam\LaravelTracing;
 
+use Illuminate\Auth\Events\Authenticated;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Contracts\Log\ContextLogProcessor as ContextLogProcessorContract;
 use Illuminate\Log\Context\Events\ContextHydrated;
@@ -15,6 +17,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
+use Niladam\LaravelTracing\Listeners\RecordAuthenticatedUser;
+use Niladam\LaravelTracing\Listeners\RecordConsoleContext;
 use Niladam\LaravelTracing\Listeners\RecordJobContext;
 use Niladam\LaravelTracing\Logging\ContextLogProcessor;
 use Niladam\LaravelTracing\Propagation\OutgoingTrace;
@@ -73,6 +77,8 @@ class TracingServiceProvider extends PackageServiceProvider
 
         Event::listen(events: ContextHydrated::class, listener: fn () => $this->startChildSpan());
 
+        $this->recordAuthenticatedUser();
+        $this->recordConsoleContext();
         $this->recordJobContext();
         $this->keepSensitiveContextOutOfJobs();
         $this->registerMiddleware();
@@ -112,11 +118,34 @@ class TracingServiceProvider extends PackageServiceProvider
     }
 
     /**
+     * Record who each unit of work is running as.
+     *
+     * Laravel only announces this for session guards, so the stateless path is
+     * picked up separately — see {@see RecordAuthenticatedUser}.
+     */
+    protected function recordAuthenticatedUser(): void
+    {
+        if (config('tracing.record.auth', true)) {
+            Event::listen(Authenticated::class, [RecordAuthenticatedUser::class, 'handle']);
+        }
+    }
+
+    /**
+     * Record which command each line was logged from.
+     */
+    protected function recordConsoleContext(): void
+    {
+        if (config('tracing.record.console', true)) {
+            Event::listen(CommandStarting::class, [RecordConsoleContext::class, 'handle']);
+        }
+    }
+
+    /**
      * Record which job each line was logged from.
      */
     protected function recordJobContext(): void
     {
-        if (config('tracing.jobs.enabled', true)) {
+        if (config('tracing.record.jobs', true)) {
             Event::listen(JobProcessing::class, RecordJobContext::class);
         }
     }

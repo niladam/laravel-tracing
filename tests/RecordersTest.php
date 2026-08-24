@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
+use Niladam\LaravelTracing\TraceContext;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
+
+beforeEach(function () {
+    Route::middleware(TraceRequests::class)->post('/probe', fn () => Context::all());
+});
+
+test('a request records what it was', function () {
+    $this->post('/probe?page=2', ['note' => 'hi'])
+        ->assertOk()
+        ->assertJsonPath('channel', Channel::Http->value)
+        ->assertJsonPath('method', 'POST')
+        ->assertJsonPath('ip', '127.0.0.1');
+
+    expect(Context::get('url'))->toContain('/probe?page=2');
+});
+
+test('the request payload is left out by default', function () {
+    $context = $this->post('/probe?page=2', ['note' => 'hi'])->assertOk()->json();
+
+    expect($context)->not->toHaveKey('body.note')
+        ->and($context)->not->toHaveKey('query.page');
+});
+
+test('the request payload is recorded when asked for, as dot keys', function () {
+    config()->set('tracing.record.request_payload', true);
+
+    $context = $this->post('/probe?page=2', ['note' => 'hi'])->assertOk()->json();
+
+    expect($context['body.note'])->toBe('hi')
+        ->and($context['query.page'])->toBe('2');
+});
+
+test('a recorded payload still passes through redaction', function () {
+    config()->set('tracing.record.request_payload', true);
+
+    $this->post('/probe', ['password' => 'hunter2'])->assertOk();
+
+    Log::channel('probe')->info('hello');
+
+    expect(probeRecords()[0]->context['body.password'])->toBe('[redacted]');
+});
+
+test('a request recorder can be turned off', function () {
+    config()->set('tracing.record.request', false);
+
+    expect($this->post('/probe')->assertOk()->json())->not->toHaveKey('method');
+});
+
+test('a console command records what it was', function () {
+    event(new CommandStarting('queue:work', new ArrayInput([]), new NullOutput));
+
+    expect(Context::get('channel'))->toBe(Channel::Console->value)
+        ->and(Context::get('command'))->toBe('queue:work');
+});
+
+test('a job records the queue channel', function () {
+    dispatch(function () {
+        Cache::put('probe.channel', Context::get('channel'));
+    })->onConnection('sync');
+
+    expect(Cache::get('probe.channel'))->toBe(Channel::Queue->value);
+});
+
+test('additional context is attached to a request', function () {
+    config()->set('tracing.additional_context', ['version' => '1.2.3']);
+
+    $this->post('/probe')->assertOk()->assertJsonPath('version', '1.2.3');
+});
+
+test('additional context survives into a job, whose context is flushed on hydrate', function () {
+    config()->set('tracing.additional_context', ['version' => '1.2.3']);
+
+    TraceContext::start()->putInContext();
+    Context::hydrate(Context::dehydrate());
+
+    expect(Context::get('version'))->toBe('1.2.3');
+});

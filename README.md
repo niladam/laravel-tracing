@@ -60,6 +60,7 @@ Two more travel with the trace but stay out of your logs: `trace_flags` and `tra
 
 | | |
 | --- | --- |
+| [Recording context](docs/recording-context.md) | The moments, the built-in recorders, and plugging in your own |
 | [Adding your own context](docs/adding-context.md) | Using Laravel's `Context` — anywhere, any time, including mid-job |
 | [Registering the middleware](docs/middleware.md) | Groups, global, or a route alias — plus ordering and manual wiring |
 | [Jobs](docs/jobs.md) | Child spans, `job.*` context, and opt-in job arguments |

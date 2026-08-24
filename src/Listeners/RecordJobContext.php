@@ -7,6 +7,7 @@ namespace Niladam\LaravelTracing\Listeners;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Context;
+use Niladam\LaravelTracing\Channel;
 use Niladam\LaravelTracing\Redactor;
 use Niladam\LaravelTracing\SensitiveParameters;
 use Throwable;
@@ -34,6 +35,7 @@ class RecordJobContext
         $name = $this->jobName($event, $payload);
 
         Context::add([
+            'channel' => Channel::Queue->value,
             "{$prefix}.name" => $name,
             "{$prefix}.connection" => $event->connectionName,
             "{$prefix}.queue" => $event->job->getQueue(),
