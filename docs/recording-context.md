@@ -169,6 +169,21 @@ It fires again when a job rehydrates, so the keys survive a queue hop — a job'
 
 If the value is a constant, skip the class entirely and use `additional_context`.
 
+### It describes the process, not the trace
+
+Because it fires *after* a job rehydrates its dispatcher's context, a `SpanOpened` recorder **overwrites** anything propagated under the same key:
+
+```
+dispatcher   deployment = 'abc123'   →   queue   →   worker   deployment = 'abc123'
+dispatcher   host       = 'web-01'   →   queue   →   worker   host       = 'worker-07'
+```
+
+That is the point for facts about *where this unit ran* — the worker's hostname is the honest answer inside a worker. It is wrong for anything meant to travel with the trace: record that at the moment it becomes true instead, and it will propagate untouched.
+
+Rule of thumb: if the answer differs between the dispatching process and the worker, `SpanOpened` is right. If it should be the same in both, it belongs on another moment.
+
+A recorder that opens a span of its own would announce, recurse and take the process down; the package guards against that, so the nested open simply does not announce again.
+
 ## A key that never appears
 
 Work backwards through the moment:

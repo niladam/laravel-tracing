@@ -134,3 +134,41 @@ final class RecordDeployment implements Recorder
         return ['deployment' => 'abc123'];
     }
 }
+
+test('a span recorder describes this process, so it wins over propagated context', function () {
+    $this->bootConfig = ['tracing.record' => [...config('tracing.record'), RecordDeployment::class]];
+    $this->refreshApplication();
+
+    TraceContext::start()->putInContext();
+    Context::add('deployment', 'the-dispatchers-value');
+
+    Context::hydrate(Context::dehydrate());
+
+    expect(Context::get('deployment'))->toBe('abc123');
+})->note('Deliberate: SpanOpened describes where this unit ran, not where the trace began.');
+
+test('a recorder that opens a span of its own does not recurse', function () {
+    $this->bootConfig = ['tracing.record' => [...config('tracing.record'), RecordThatOpensASpan::class]];
+    $this->refreshApplication();
+
+    Context::flush();
+
+    TraceContext::start()->putInContext();
+
+    expect(Context::get('reentered'))->toBe(1);
+})->note('The nested putInContext() must not announce again — one span open, one run.');
+
+final class RecordThatOpensASpan implements Recorder
+{
+    public static function listensTo(): string
+    {
+        return SpanOpened::class;
+    }
+
+    public function __invoke(object $event): array
+    {
+        TraceContext::start()->putInContext();
+
+        return ['reentered' => (int) Context::get('reentered') + 1];
+    }
+}
