@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
+use Niladam\LaravelTracing\Events\SpanOpened;
 
 /**
  * Reads the trace the current request, job or command is running in.
@@ -46,6 +47,21 @@ class Tracing
         });
 
         return $this;
+    }
+
+    /**
+     * Merge context into every unit of work — request, job run and command.
+     *
+     * The light way to add a key or two that have no moment of their own. When
+     * it grows, or needs dependencies, write a Recorder and list it in config.
+     *
+     * ```php
+     * Tracing::always(fn () => ['deployment' => config('app.deployment')]);
+     * ```
+     */
+    public function always(Closure|string $recorder): static
+    {
+        return $this->on(SpanOpened::class, $recorder);
     }
 
     /**

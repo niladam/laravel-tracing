@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 use Niladam\LaravelTracing\Recorders\RecordAuthenticatedUser;
 use Niladam\LaravelTracing\Recorders\RecordConsoleContext;
 use Niladam\LaravelTracing\Recorders\RecordJobContext;

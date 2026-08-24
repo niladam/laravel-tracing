@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use Niladam\LaravelTracing\Channel;
 use Niladam\LaravelTracing\Contracts\Recorder;
 use Niladam\LaravelTracing\Events\SpanOpened;
+use Niladam\LaravelTracing\Facades\Tracing;
 use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
 use Niladam\LaravelTracing\Recorders\RecordRequestContext;
 use Niladam\LaravelTracing\TraceContext;
@@ -172,3 +173,21 @@ final class RecordThatOpensASpan implements Recorder
         return ['reentered' => (int) Context::get('reentered') + 1];
     }
 }
+
+test('always is the one-line way to add a key with no moment of its own', function () {
+    Tracing::always(fn () => ['deployment' => 'from-a-closure']);
+
+    Context::flush();
+    TraceContext::start()->putInContext();
+
+    expect(Context::get('deployment'))->toBe('from-a-closure');
+});
+
+test('always reaches jobs too', function () {
+    Tracing::always(fn () => ['deployment' => 'from-a-closure']);
+
+    TraceContext::start()->putInContext();
+    Context::hydrate(Context::dehydrate());
+
+    expect(Context::get('deployment'))->toBe('from-a-closure');
+});

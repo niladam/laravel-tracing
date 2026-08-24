@@ -17,6 +17,28 @@ Every key has a **moment** — the instant it becomes true. Record it then, and 
 
 Laravel publishes the middle three. The package publishes the two marked *(package)*, because Laravel has nothing early enough — so every recorder, built-in or yours, is the same kind of thing.
 
+## Adding a key — pick the lightest rung
+
+| Your key is… | Do this | Effort |
+| --- | --- | --- |
+| a constant | `additional_context` in config | no code |
+| a value or two, computed | `Tracing::always(...)` | one line |
+| tied to a moment | `Tracing::on(SomeEvent::class, ...)` | one line |
+| tied to who is logged in | `Tracing::authenticated('web', ...)` | one line |
+| growing, or needs dependencies | a `Recorder` class in `record` | a class |
+
+Only the last rung is a class, and only reach for it when a closure has stopped being the right size. Everything else is one line:
+
+```php
+// config/tracing.php
+'additional_context' => ['deployment' => env('DEPLOYMENT_ID')],
+
+// a service provider's boot()
+Tracing::always(fn () => ['host' => gethostname()]);
+Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
+Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+```
+
 ## What you get for free
 
 A list of recorder classes. Delete a line to switch one off; add a line to switch your own on.
@@ -146,11 +168,15 @@ Resolved from the container, so it can take dependencies. Recorders **stack** �
 
 ## When there is no event
 
-Some facts have no moment — a deployment id, a hostname, a pod name. They are not a special case: listen for `SpanOpened`, which fires once per request, job run and command.
+Some facts have no moment — a deployment id, a hostname, a pod name. `Tracing::always()` is the one-liner for exactly this:
 
 ```php
-use Niladam\LaravelTracing\Events\SpanOpened;
+Tracing::always(fn () => ['host' => gethostname()]);
+```
 
+It is sugar over `SpanOpened`, an event the package announces once per request, job run and command — so if the list outgrows a closure, the same thing as a class is:
+
+```php
 final class RecordDeployment implements Recorder
 {
     public static function listensTo(): string
@@ -165,7 +191,7 @@ final class RecordDeployment implements Recorder
 }
 ```
 
-It fires again when a job rehydrates, so the keys survive a queue hop — a job's context is flushed and refilled, and anything not re-recorded would be lost.
+Either way it fires again when a job rehydrates, so the keys survive a queue hop — a job's context is flushed and refilled, and anything not re-recorded would be lost.
 
 If the value is a constant, skip the class entirely and use `additional_context`.
 
