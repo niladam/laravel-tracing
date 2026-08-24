@@ -67,9 +67,11 @@ class ChargeCard implements ShouldQueue
 ```
 
 ```
+job.excluded_parameters  ["cardToken"]     ← named, so you know it was withheld
 job.arguments.invoiceId  inv-1
-                              ← cardToken is absent, not masked
 ```
+
+`cardToken` is absent rather than masked — it never enters the context at all.
 
 It is off by default for two reasons: payloads can be large enough to bloat every log line a job writes, and a job is free to hold things that have no business being on disk. Turn it on for a queue you are actively debugging.
 

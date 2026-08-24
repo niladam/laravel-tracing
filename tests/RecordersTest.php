@@ -191,3 +191,33 @@ test('always reaches jobs too', function () {
 
     expect(Context::get('deployment'))->toBe('from-a-closure');
 });
+
+test('a recorder is resolved from the container, so it can take dependencies', function () {
+    $this->bootConfig = ['tracing.record' => [...config('tracing.record'), RecordWithDependency::class]];
+    $this->refreshApplication();
+
+    Context::flush();
+    TraceContext::start()->putInContext();
+
+    expect(Context::get('greeting'))->toBe('resolved');
+});
+
+final class GreetingProbe
+{
+    public function __construct(public readonly string $value = 'resolved') {}
+}
+
+final class RecordWithDependency implements Recorder
+{
+    public function __construct(private readonly GreetingProbe $probe) {}
+
+    public static function listensTo(): string
+    {
+        return SpanOpened::class;
+    }
+
+    public function __invoke(object $event): array
+    {
+        return ['greeting' => $this->probe->value];
+    }
+}

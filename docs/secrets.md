@@ -26,6 +26,19 @@ class ChargeCard implements ShouldQueue
 
 With `context.jobs.arguments` enabled, `invoiceId` is recorded and `cardToken` is not — it never enters the context, so it cannot reach a log line or be redacted-but-present.
 
+The package **says what it withheld**, so a missing argument is not confused with one that was never there:
+
+```
+job.excluded_parameters   ["cardToken"]
+job.arguments.invoiceId   inv-1
+```
+
+The key is absent entirely when nothing was withheld. To ask the same question yourself — without reimplementing the reflection:
+
+```php
+Tracing::sensitiveParametersFor(ChargeCard::class);   // ['cardToken']
+```
+
 This only applies to constructor parameters of a queued job, and only when `context.jobs.arguments` is on (it is off by default).
 
 If your application already has an attribute of its own, list it and it is honoured the same way:

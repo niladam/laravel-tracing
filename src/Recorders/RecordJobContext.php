@@ -92,11 +92,18 @@ class RecordJobContext implements Recorder
             return [];
         }
 
-        $properties = Arr::except($properties, $this->sensitive->for($name));
+        $excluded = $this->sensitive->for($name);
 
-        return Arr::prependKeysWith(
-            $this->redactor->apply(Arr::dot($properties)),
-            "{$prefix}.arguments.",
-        );
+        return [
+            /*
+             * Naming what was withheld, so a missing argument is not confused
+             * with one that was never there.
+             */
+            ...($excluded === [] ? [] : ["{$prefix}.excluded_parameters" => $excluded]),
+            ...Arr::prependKeysWith(
+                $this->redactor->apply(Arr::dot(Arr::except($properties, $excluded))),
+                "{$prefix}.arguments.",
+            ),
+        ];
     }
 }

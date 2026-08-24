@@ -98,6 +98,19 @@ class Tracing
         return $recorder instanceof Closure ? $recorder : app($recorder)(...);
     }
 
+    /**
+     * The constructor parameters a class has marked as sensitive.
+     *
+     * The same list the package uses to decide what to withhold from job
+     * arguments — ask it rather than reimplementing the reflection.
+     *
+     * @return list<string>
+     */
+    public function sensitiveParametersFor(string $class): array
+    {
+        return app(SensitiveParameters::class)->for($class);
+    }
+
     public function trace(): ?TraceContext
     {
         return TraceContext::fromContext();
