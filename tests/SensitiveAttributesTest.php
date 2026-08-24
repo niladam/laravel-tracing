@@ -103,3 +103,15 @@ class OpenJob implements ShouldQueue
         Cache::put('probe.attrs', Context::all());
     }
 }
+
+test('naming the withheld parameters can be switched off', function () {
+    config()->set('tracing.context.jobs.name_excluded_parameters', false);
+
+    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+
+    $context = Cache::get('probe.attrs');
+
+    expect($context)->not->toHaveKey('job.excluded_parameters')
+        ->and($context)->not->toHaveKey('job.arguments.cardToken')
+        ->and($context['job.arguments.invoiceId'])->toBe('inv-1');
+})->note('Switching it off hides the name, never the withholding itself.');

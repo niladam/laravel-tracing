@@ -33,7 +33,17 @@ job.excluded_parameters   ["cardToken"]
 job.arguments.invoiceId   inv-1
 ```
 
-The key is absent entirely when nothing was withheld. To ask the same question yourself — without reimplementing the reflection:
+The key is absent entirely when nothing was withheld. A name is not a value, but it still says the job holds a `cardToken` — switch it off if even that is more than you want written down:
+
+```php
+'context' => [
+    'jobs' => ['name_excluded_parameters' => false],
+],
+```
+
+That hides the name, never the withholding itself: the value is dropped either way.
+
+To ask the same question yourself — without reimplementing the reflection:
 
 ```php
 Tracing::sensitiveParametersFor(ChargeCard::class);   // ['cardToken']

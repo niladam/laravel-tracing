@@ -54,6 +54,25 @@ class RecordJobContext implements Recorder
     }
 
     /**
+     * Name what was withheld, so a missing argument is not confused with one
+     * that was never set.
+     *
+     * A name is not a value, but it still says the job holds a "cardToken" —
+     * switch it off if even that is more than you want written down.
+     *
+     * @param  list<string>  $excluded
+     * @return array<string, list<string>>
+     */
+    protected function withheld(array $excluded, string $prefix): array
+    {
+        if ($excluded === [] || ! config('tracing.context.jobs.name_excluded_parameters', true)) {
+            return [];
+        }
+
+        return ["{$prefix}.excluded_parameters" => $excluded];
+    }
+
+    /**
      * The command a payload wraps, falling back to the display name.
      *
      * The display name is not always a class — a queued closure reports
@@ -99,7 +118,7 @@ class RecordJobContext implements Recorder
              * Naming what was withheld, so a missing argument is not confused
              * with one that was never there.
              */
-            ...($excluded === [] ? [] : ["{$prefix}.excluded_parameters" => $excluded]),
+            ...$this->withheld($excluded, $prefix),
             ...Arr::prependKeysWith(
                 $this->redactor->apply(Arr::dot(Arr::except($properties, $excluded))),
                 "{$prefix}.arguments.",

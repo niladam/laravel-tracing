@@ -167,6 +167,16 @@ return [
             'arguments' => (bool) env('TRACING_JOB_ARGUMENTS', false),
 
             /*
+             * Name the parameters that were withheld, as job.excluded_parameters,
+             * so a missing argument is not confused with one that was never set.
+             *
+             * A name is not a value, but it still says the job holds a
+             * "cardToken" — switch it off if even that is more than you want
+             * written down.
+             */
+            'name_excluded_parameters' => (bool) env('TRACING_JOB_NAME_EXCLUDED', true),
+
+            /*
              * Attributes marking a constructor parameter as sensitive.
              *
              * Job arguments only, since that is the only place this package
