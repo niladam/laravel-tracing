@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Niladam\LaravelTracing\Channel;
+use Niladam\LaravelTracing\Contracts\Recorder;
+use Niladam\LaravelTracing\Events\SpanOpened;
 use Niladam\LaravelTracing\Http\Middleware\TraceRequests;
 use Niladam\LaravelTracing\Recorders\RecordRequestContext;
 use Niladam\LaravelTracing\TraceContext;
@@ -100,3 +102,35 @@ test('a recorder left out of the list never registers', function () {
         ->and($context)->not->toHaveKey('channel')
         ->and($context)->toHaveKey('trace_id');
 })->note('The trace itself still works — only that one recorder is gone.');
+
+test('a recorder with no natural event can listen for the span opening', function () {
+    $this->bootConfig = ['tracing.record' => [...config('tracing.record'), RecordDeployment::class]];
+    $this->refreshApplication();
+
+    Route::middleware(TraceRequests::class)->post('/probe', fn () => Context::all());
+
+    expect($this->post('/probe')->assertOk()->json())
+        ->toHaveKey('deployment', 'abc123');
+});
+
+test('the span opening reaches a job too, whose context is flushed on hydrate', function () {
+    $this->bootConfig = ['tracing.record' => [...config('tracing.record'), RecordDeployment::class]];
+    $this->refreshApplication();
+
+    Context::hydrate(Context::dehydrate());
+
+    expect(Context::get('deployment'))->toBe('abc123');
+});
+
+final class RecordDeployment implements Recorder
+{
+    public static function listensTo(): string
+    {
+        return SpanOpened::class;
+    }
+
+    public function __invoke(object $event): array
+    {
+        return ['deployment' => 'abc123'];
+    }
+}

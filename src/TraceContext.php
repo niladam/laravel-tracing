@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Niladam\LaravelTracing;
 
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Event;
+use Niladam\LaravelTracing\Events\SpanOpened;
 
 /**
  * A W3C Trace Context span.
@@ -150,5 +152,7 @@ final readonly class TraceContext
         ]);
 
         Context::add((array) config('tracing.additional_context', []));
+
+        Event::dispatch(new SpanOpened($this));
     }
 }

@@ -8,13 +8,14 @@ Every key has a **moment** — the instant it becomes true. Record it then, and 
 
 | Moment | Signal | What is knowable |
 | --- | --- | --- |
-| a request arrives | `TraceRequests` middleware | `channel`, `ip`, `url`, `method`, body, query |
+| a unit of work begins | `SpanOpened` *(package)* | nothing yet — the moment for facts with no moment |
+| a request arrives | `RequestReceived` *(package)* | `channel`, `ip`, `url`, `method`, body, query |
 | **any guard answers** | `Authenticated`, or the request's user resolver | the user — session *and* stateless |
 | a command starts | `CommandStarting` | `channel`, `command` |
 | a job starts | `JobProcessing` | `job.name`, `job.queue`, `job.attempts`, … |
 | anything else your app knows | **your own events** | whatever that event carries |
 
-The package covers the first four. The last one is where your app plugs in.
+Laravel publishes the middle three. The package publishes the two marked *(package)*, because Laravel has nothing early enough — so every recorder, built-in or yours, is the same kind of thing.
 
 ## What you get for free
 
@@ -142,6 +143,31 @@ Tracing::authenticated('web', BillingContext::class);
 ```
 
 Resolved from the container, so it can take dependencies. Recorders **stack** — register as many as you like against the same moment, each doing one thing, rather than growing one array.
+
+## When there is no event
+
+Some facts have no moment — a deployment id, a hostname, a pod name. They are not a special case: listen for `SpanOpened`, which fires once per request, job run and command.
+
+```php
+use Niladam\LaravelTracing\Events\SpanOpened;
+
+final class RecordDeployment implements Recorder
+{
+    public static function listensTo(): string
+    {
+        return SpanOpened::class;
+    }
+
+    public function __invoke(SpanOpened $event): array
+    {
+        return ['deployment' => config('app.deployment'), 'host' => gethostname()];
+    }
+}
+```
+
+It fires again when a job rehydrates, so the keys survive a queue hop — a job's context is flushed and refilled, and anything not re-recorded would be lost.
+
+If the value is a constant, skip the class entirely and use `additional_context`.
 
 ## A key that never appears
 
