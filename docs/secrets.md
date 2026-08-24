@@ -18,19 +18,19 @@ class ChargeCard implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public string $invoiceId,
+        public string $orderId,
         #[SensitiveParameter] public string $cardToken,
     ) {}
 }
 ```
 
-With `context.jobs.arguments` enabled, `invoiceId` is recorded and `cardToken` is not — it never enters the context, so it cannot reach a log line or be redacted-but-present.
+With `context.jobs.arguments` enabled, `orderId` is recorded and `cardToken` is not — it never enters the context, so it cannot reach a log line or be redacted-but-present.
 
 The package **says what it withheld**, so a missing argument is not confused with one that was never there:
 
 ```
 job.excluded_parameters   ["cardToken"]
-job.arguments.invoiceId   inv-1
+job.arguments.orderId   ord-1
 ```
 
 The key is absent entirely when nothing was withheld. A name is not a value, but it still says the job holds a `cardToken` — switch it off if even that is more than you want written down:

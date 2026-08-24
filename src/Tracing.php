@@ -70,7 +70,7 @@ class Tracing
      * Works for session and stateless guards alike; pass '*' for any guard.
      *
      * ```php
-     * Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
+     * Tracing::authenticated('web', fn (User $user) => ['team_id' => $user->current_team_id]);
      * ```
      */
     public function authenticated(string $guard, Closure|string $recorder): static

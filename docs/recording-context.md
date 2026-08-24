@@ -35,8 +35,8 @@ Only the last rung is a class, and only reach for it when a closure has stopped 
 
 // a service provider's boot()
 Tracing::always(fn () => ['host' => gethostname()]);
-Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
-Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+Tracing::authenticated('web', fn (User $user) => ['team_id' => $user->current_team_id]);
+Tracing::on(TeamSwitched::class, fn ($e) => ['team_id' => $e->team->id]);
 ```
 
 ## What you get for free
@@ -101,7 +101,7 @@ Two methods, for when a class is more ceremony than the job needs. Both take a c
 
 ```php
 Tracing::authenticated('web', fn (User $user) => [
-    'company_id' => $user->current_company_id,
+    'team_id' => $user->current_team_id,
 ]);
 
 Tracing::authenticated('admin', fn (Admin $admin) => ['admin_id' => $admin->id]);
@@ -129,7 +129,7 @@ Register these in a service provider's `boot()`, alongside your other event wiri
 public function boot(): void
 {
     Tracing::authenticated('web', fn (User $user) => [...]);
-    Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+    Tracing::on(TeamSwitched::class, fn ($e) => ['team_id' => $e->team->id]);
 }
 ```
 
@@ -137,11 +137,11 @@ Not in config — closures are not serialisable, and `config:cache` would refuse
 
 ## Keys correct themselves
 
-This is the part a middleware cannot do. Say a user switches company mid-request:
+This is the part a middleware cannot do. Say a user switches teams mid-request:
 
 ```php
-Tracing::authenticated('web', fn (User $user) => ['company_id' => $user->current_company_id]);
-Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+Tracing::authenticated('web', fn (User $user) => ['team_id' => $user->current_team_id]);
+Tracing::on(TeamSwitched::class, fn ($e) => ['team_id' => $e->team->id]);
 ```
 
 The first sets it when the user resolves. The second **corrects** it the moment the change happens, because `Context::add` overwrites. Every line logged afterwards, and every job dispatched afterwards, carries the new value.

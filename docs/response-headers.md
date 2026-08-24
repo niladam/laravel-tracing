@@ -49,4 +49,4 @@ When support receives that string, `grep` it and the entire tree of work behind 
 
 A trace id is an opaque random value. It reveals nothing about your infrastructure, contains no user data, and cannot be guessed backwards into anything. Returning one on a public response is normal practice.
 
-What you should *not* do is return internal context — `company_id`, `user_id` and friends stay in your logs.
+What you should *not* do is return internal context — `team_id`, `user_id` and friends stay in your logs.
