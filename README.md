@@ -17,44 +17,95 @@ Built on the [W3C Trace Context](https://www.w3.org/TR/trace-context/) standard,
 
 `grep` one `trace_id` for the whole tree. `parent_span_id` tells you who triggered what.
 
-## Why
-
-Laravel's `Context` is already carried into queued jobs, but it lands in a log record's `extra` — a *second* JSON blob on every line — and a correlation id minted once per process gets stamped on every unrelated job a worker happens to run. This package fixes both, and adds the pieces `Context` does not cover: reading and sending the standard header, and keeping secrets out of your logs and your queue.
-
 ## Installation
 
 ```bash
 composer require niladam/laravel-tracing
 ```
 
-The service provider is auto-discovered. Publish the config if you want to change anything:
+That is the whole setup — the provider is auto-discovered, requests are traced, jobs inherit the trace and log lines carry it. Publish the config only when you want to change something:
 
 ```bash
 php artisan vendor:publish --tag=laravel-tracing-config
 ```
 
-That is the whole setup. Requests are traced, jobs inherit the trace, and log lines carry it.
+## What you get without configuring anything
 
-## What you get
-
-| Key | Meaning |
+| Key | |
 | --- | --- |
-| `trace_id` | 32 hex. The root. Minted once at the origin, **never** regenerated as it travels. |
+| `trace_id` | 32 hex. The root, minted once at the origin and **never** regenerated as it travels. |
 | `span_id` | 16 hex. This one unit of work — this request, this job run, this command. |
 | `parent_span_id` | The `span_id` that caused this one. `null` at the root. |
+| `channel` | `http`, `console` or `queue`. |
+| `user_id` | The moment any guard answers — session and stateless alike. |
+| `ip`, `url`, `method` | On a request. |
+| `command` | On a console command. |
+| `job.*` | `name`, `connection`, `queue`, `attempts`, `uuid` — inside a job. |
 
-Two more travel with the trace but stay out of your logs: `trace_flags` and `trace_state`.
-
-## Boundaries it crosses
+Crossing every boundary on the way:
 
 | Boundary | How |
 | --- | --- |
 | Inbound HTTP | Reads `traceparent` / `tracestate` and continues the caller's trace |
-| Queued jobs | Laravel's context dehydrate/hydrate, with a fresh child span per job run |
+| Queued jobs | Context dehydrate/hydrate, with a fresh child span per job run |
 | Console subprocesses | Laravel rehydrates `__LARAVEL_CONTEXT`, so `Artisan::call` children join in |
-| Outgoing HTTP | `traceparent` injected on your own hosts only |
-| Saloon | Registered separately, since Saloon ships its own sender. Optional. |
-| Logs | Merged into each record's `context` |
+| Outgoing HTTP | `traceparent` injected on your own hosts only — never a third party |
+| Saloon | Registered separately, since it ships its own sender. Optional. |
+| Logs | Merged into each record's `context`, so a line stays one JSON object |
+
+## Adding your own context
+
+Every key has a **moment** — the instant it becomes true. Record it then and you never think about middleware order or whether the user has logged in yet.
+
+Pick the lightest rung that fits:
+
+| Your key is… | Do this |
+| --- | --- |
+| a constant | `context.additional` in config — no code |
+| a value or two, computed | `Tracing::always(…)` |
+| tied to who is logged in | `Tracing::authenticated('web', …)` |
+| tied to a moment | `Tracing::on(SomeEvent::class, …)` |
+| growing, or needs dependencies | a `Recorder` class listed in `record` |
+
+```php
+use Niladam\LaravelTracing\Facades\Tracing;
+
+// in a service provider's boot()
+Tracing::always(fn () => ['host' => gethostname()]);
+
+Tracing::authenticated('web', fn (User $user) => [
+    'company_id' => $user->current_company_id,
+]);
+
+Tracing::on(CurrentCompanyChanged::class, fn ($e) => ['company_id' => $e->companyId]);
+```
+
+That last line is the part a middleware cannot do: `Context::add` overwrites, so the key **corrects itself** the moment the company changes. Snapshot it once at the start of a request and it is wrong for the rest of it.
+
+Anything you put in Laravel's own `Context` is traced too — there is no second store and nothing new to learn:
+
+```php
+Context::add(['order_id' => $order->id]);
+Context::addHidden('idempotency_key', $key);   // travels to jobs, never logged
+```
+
+Read the trace back through the facade, which knows what you have named the keys:
+
+```php
+Tracing::traceId();       // 4bf92f3577b34da6a3ce929d0e0e4736
+Tracing::traceparent();   // to hand to a client this package does not cover
+```
+
+## Keeping secrets out
+
+Four mechanisms, narrowest first — [the guide](docs/secrets.md) covers which to reach for:
+
+```php
+#[\SensitiveParameter] public string $cardToken,             // never recorded at all
+Context::addHidden('key', $value);                           // travels, never logged
+'logs'    => ['redact' => ['keys' => ['*password*']]],       // safety net, descends into nested values
+'context' => ['local_only' => ['body.*']],                   // stays in this process, never written to your queue
+```
 
 ## Documentation
 
@@ -68,60 +119,19 @@ Two more travel with the trace but stay out of your logs: `trace_flags` and `tra
 | [Handing the trace back](docs/response-headers.md) | Response headers, and showing an id to a user |
 | [Interoperability](docs/interoperability.md) | The wire format, renaming keys, upstream ids, Saloon, APMs |
 
-## The short version
+## Configuration at a glance
 
-**Attach your own data** with Laravel's own `Context` — there is nothing new to learn, and no second store. Anything in it is traced, logged and carried into jobs:
-
-```php
-use Illuminate\Support\Facades\Context;
-
-Context::add(['company_id' => $company->id, 'order_id' => $order->id]);
-Context::addHidden('idempotency_key', $key);   // travels to jobs, never logged
-```
-
-**Read the trace** through the facade, which knows what you have named the keys:
+Five groups, each answering one question:
 
 ```php
-use Niladam\LaravelTracing\Facades\Tracing;
-
-Tracing::traceId();       // 4bf92f3577b34da6a3ce929d0e0e4736
-Tracing::traceparent();   // to hand to a client this package does not cover
+'middleware'  => [...],   // where a trace begins
+'record'      => [...],   // what gets recorded
+'context'     => [...],   // what lands in the context
+'logs'        => [...],   // what reaches a log line
+'propagation' => [...],   // what leaves the application
 ```
 
-**Know which job a line came from.** Every line logged inside a job carries `job.name`, `job.connection`, `job.queue`, `job.attempts` and `job.uuid`. These never reach the payload of a job it dispatches, so children report themselves.
-
-**Keep secrets out**, three ways — see [the guide](docs/secrets.md) for which to reach for:
-
-```php
-#[\SensitiveParameter] public string $cardToken,   // never recorded at all
-Context::addHidden('key', $value);                 // travels, never logged
-'logs' => ['redact' => ['keys' => ['*password*']]],  // safety net for everything else
-'context' => ['local_only' => ['body.*']],         // keeps bulk out of Redis
-```
-
-**Hand the id back to the caller**, so support can quote it instead of hunting for it:
-
-```php
-'propagation' => ['response_headers' => ['X-Trace-Id' => 'trace_id']],
-```
-
-**Only your own hosts get your trace.** `domains` defaults to `session.domain`, and matching is on a label boundary — `evilexample.com` and `example.s3.amazonaws.com` are somebody else's.
-
-**Flatten nested context** for log pipelines that dislike arrays (New Relic among them) with `flatten_context` — logs only, so job payloads keep their real structure. Purely cosmetic: redaction descends into nested values either way.
-
-**One log line, not two.** Laravel writes ambient context to a record's `extra`, which `LineFormatter` renders as a *second* JSON blob. This merges both into `context` and leaves `extra` empty — set `merge_log_context` to `false` for Laravel's default split.
-
-**Register the middleware however suits you** — prepended to groups, onto the global stack, or as a route alias for one-off routes:
-
-```php
-'middleware' => [
-    'groups' => ['web', 'api'],
-    'global' => false,
-    'alias'  => 'trace',      // Route::middleware('trace')->...
-],
-```
-
-**Turn it all off** with `enabled => false`.
+`'enabled' => false` turns the lot off.
 
 ## Requirements
 
