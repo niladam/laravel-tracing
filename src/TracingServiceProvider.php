@@ -41,7 +41,7 @@ class TracingServiceProvider extends PackageServiceProvider
         ));
 
         $this->app->singleton(SensitiveParameters::class, fn () => new SensitiveParameters(
-            attributes: (array) config('tracing.redact.attributes', [\SensitiveParameter::class]),
+            attributes: (array) config('tracing.jobs.sensitive_attributes', [\SensitiveParameter::class]),
         ));
 
         $this->app->singleton(Redactor::class, fn () => new Redactor(

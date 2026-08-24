@@ -89,8 +89,8 @@ return [
     | Logs only: job payloads keep their real structure, so a nested value
     | still arrives intact on the other side of a queue.
     |
-    | It also widens "redact" below, since a nested secret only matches a
-    | pattern once its key has become "body.password".
+    | Purely a presentation choice: "redact" descends into nested values on
+    | its own, so leaving this off costs nothing in safety.
     |
     */
 
@@ -102,12 +102,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | Context whose key matches one of these is masked before it reaches a log
-    | line. Patterns are matched case-insensitively, `*` meaning any run of
-    | characters, so "*password*" also covers "body.password_confirmation".
+    | line — every log line, from any source, including job arguments.
+    | Patterns are matched case-insensitively, `*` meaning any run of characters,
+    | so "*password*" also covers "body.password_confirmation".
+    |
+    | Nested values are descended into, and a value matches on its own key or on
+    | its full dotted path, so "body.address" targets exactly one field.
     |
     | This is a safety net for context added elsewhere. For a value that should
     | travel with the trace but never be written down, prefer
-    | Tracing::addHidden(), which keeps it out of logs entirely.
+    | Context::addHidden(), which keeps it out of logs entirely.
     |
     */
 
@@ -124,17 +128,6 @@ return [
         ],
 
         'replacement' => '[redacted]',
-
-        /*
-         * Attributes that mark a constructor parameter as sensitive, so its
-         * value is never recorded when "jobs.arguments" is on.
-         *
-         * PHP's own #[\SensitiveParameter] is honoured out of the box. Add your
-         * own here if the application already has one.
-         */
-        'attributes' => [
-            SensitiveParameter::class,
-        ],
     ],
 
     /*
@@ -158,10 +151,22 @@ return [
          * be large, and a job is free to hold things that have no business
          * being written to a log file.
          *
-         * Constructor parameters marked #[\SensitiveParameter] are dropped,
-         * and whatever remains still passes through "redact" below.
+         * Parameters marked by one of "sensitive_attributes" below are dropped,
+         * and whatever remains still passes through "redact" above.
          */
         'arguments' => (bool) env('TRACING_JOB_ARGUMENTS', false),
+
+        /*
+         * Attributes marking a constructor parameter as sensitive, so its value
+         * is dropped rather than redacted — it never enters the context at all.
+         *
+         * Applies to job arguments only, since that is the only place this
+         * package reflects over parameters; for everything else, use "redact"
+         * above. PHP's own #[\SensitiveParameter] is honoured out of the box.
+         */
+        'sensitive_attributes' => [
+            SensitiveParameter::class,
+        ],
     ],
 
     /*

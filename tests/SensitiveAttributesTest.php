@@ -33,6 +33,19 @@ test('an attribute that is not listed is not honoured', function () {
     expect(Cache::get('probe.attrs')['job.arguments.note'])->toBe('internal');
 });
 
+test('the attribute list is driven by config', function () {
+    config()->set('tracing.jobs.sensitive_attributes', [ExcludeFromLogs::class]);
+    app()->forgetInstance(SensitiveParameters::class);
+
+    dispatch(new TwoAttributeJob('inv-1', 'tok_live', 'internal'))->onConnection('sync');
+
+    $context = Cache::get('probe.attrs');
+
+    expect($context)->not->toHaveKey('job.arguments.note')
+        ->and($context)->toHaveKey('job.arguments.cardToken')
+        ->and($context['job.arguments.cardToken'])->toBe('[redacted]');
+})->note('SensitiveParameter is unlisted, so cardToken is no longer dropped — but "*token*" still redacts it.');
+
 test('an empty attribute list disables the mechanism', function () {
     expect((new SensitiveParameters([]))->for(TwoAttributeJob::class))->toBe([]);
 });
