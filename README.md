@@ -1,13 +1,9 @@
-<p align="center">
-    <img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/logo.jpg" alt="Laravel Tracing" width="100%">
-</p>
+<p align="center"><img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/logo.jpg" alt="Laravel Tracing" width="100%"><img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/header.jpg" alt="A request traced through its jobs and the services they call, every log line carrying the same trace id" width="100%"></p>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/niladam/laravel-tracing.svg?style=flat-square)](https://packagist.org/packages/niladam/laravel-tracing)
 [![Tests](https://img.shields.io/github/actions/workflow/status/niladam/laravel-tracing/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/niladam/laravel-tracing/actions/workflows/run-tests.yml)
 [![Code Style](https://img.shields.io/github/actions/workflow/status/niladam/laravel-tracing/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/niladam/laravel-tracing/actions/workflows/fix-php-code-style-issues.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/niladam/laravel-tracing.svg?style=flat-square)](https://packagist.org/packages/niladam/laravel-tracing)
-
-<img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/header.jpg" alt="A request traced through its jobs and the services they call, every log line carrying the same trace id" width="100%">
 
 One id follows a request through its own log lines, the queued jobs it dispatches, the jobs *those* dispatch, and the internal services it calls.
 
