@@ -24,7 +24,7 @@ use Throwable;
  * ```
  *
  * Applications with an attribute of their own can list it in
- * `tracing.redact.attributes` and have it honoured the same way.
+ * `tracing.context.jobs.sensitive_attributes` and have it honoured the same way.
  */
 class SensitiveParameters
 {
