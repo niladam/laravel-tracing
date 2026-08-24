@@ -1,19 +1,17 @@
-# Laravel Tracing
+<p align="center">
+    <img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/logo.jpg" alt="Laravel Tracing" width="100%">
+</p>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/niladam/laravel-tracing.svg?style=flat-square)](https://packagist.org/packages/niladam/laravel-tracing)
 [![Tests](https://img.shields.io/github/actions/workflow/status/niladam/laravel-tracing/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/niladam/laravel-tracing/actions/workflows/run-tests.yml)
 [![Code Style](https://img.shields.io/github/actions/workflow/status/niladam/laravel-tracing/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/niladam/laravel-tracing/actions/workflows/fix-php-code-style-issues.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/niladam/laravel-tracing.svg?style=flat-square)](https://packagist.org/packages/niladam/laravel-tracing)
 
+<img src="https://raw.githubusercontent.com/niladam/laravel-tracing/main/docs/header.jpg" alt="A request traced through its jobs and the services they call, every log line carrying the same trace id" width="100%">
+
 One id follows a request through its own log lines, the queued jobs it dispatches, the jobs *those* dispatch, and the internal services it calls.
 
 Built on the [W3C Trace Context](https://www.w3.org/TR/trace-context/) standard, so it speaks the same `traceparent` header as OpenTelemetry, Sentry, Datadog and Honeycomb — no APM dependency required, and nothing to rewrite if you add one later.
-
-```
-[13:34:12] local.INFO: order placed      {"trace_id":"d4f871…","span_id":"9215fefcbdd8b18e","parent_span_id":null,…}
-[13:34:13] local.INFO: charging card     {"trace_id":"d4f871…","span_id":"16d7e9be2ca54e25","parent_span_id":"9215fefcbdd8b18e",…}
-[13:34:13] local.INFO: sending receipt   {"trace_id":"d4f871…","span_id":"5b18f3563067f4f8","parent_span_id":"16d7e9be2ca54e25",…}
-```
 
 `grep` one `trace_id` for the whole tree. `parent_span_id` tells you who triggered what.
 
@@ -164,6 +162,8 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 - [Madalin Tache](https://github.com/niladam)
 - [All Contributors](../../contributors)
+
+The logo and header image were generated with AI.
 
 ## License
 
