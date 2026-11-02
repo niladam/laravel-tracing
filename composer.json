@@ -41,7 +41,7 @@
         "laravel/pint": "^1.0",
         "orchestra/testbench": "^10.0|^11.0",
         "saloonphp/saloon": "^4.0",
-        "pestphp/pest": "^3.0|^4.0"
+        "pestphp/pest": "^5.3.4"
     },
     "suggest": {
         "saloonphp/saloon": "Propagates the trace on Saloon requests too, which use their own sender."
